@@ -20,21 +20,7 @@ const members = collection(db, 'members')
 const sessions = collection(db, 'sessions')
 
 /** Seeded once into an empty database — edit the roster in the app's admin panel. */
-const STARTER_ROSTER = [
-  'Gubbe',
-  'Jalle',
-  'Elias',
-  'Mie',
-  'Alex',
-  'Johnny',
-  'Jens',
-  'Per',
-  'Kalle',
-  'Rowena',
-  'Astrid',
-  'Freddy',
-  'Valde',
-]
+const STARTER_ROSTER = ['Elias', 'Adrian', 'Jacob', 'Marius']
 
 export function watchMembers(onChange: (list: Member[]) => void, onError: (e: Error) => void) {
   return onSnapshot(
