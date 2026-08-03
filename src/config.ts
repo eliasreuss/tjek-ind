@@ -1,6 +1,3 @@
-/** Shown in the header. */
-export const GYM_NAME = 'Fitnesscenter'
-
 /**
  * Guards the admin panel. This only keeps curious fingers out — anyone reading
  * the source can find it, so treat it as a speed bump, not a lock.

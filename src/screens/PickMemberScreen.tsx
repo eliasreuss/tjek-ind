@@ -10,57 +10,40 @@ type Props = {
 }
 
 export function PickMemberScreen({ onPick, onBack }: Props) {
-  const { members, me, active, ready } = useGym()
-  const trainingIds = new Set(active.map((s) => s.memberId))
+  const { members, active, ready } = useGym()
+  const training = new Set(active.map((s) => s.memberId))
 
   return (
-    <div className="screen screen-amber">
+    <div className="screen">
       <header className="topbar">
-        <button className="icon-btn on-amber" onClick={onBack} aria-label="Tilbage">
+        <button className="icon-btn" onClick={onBack} aria-label="Tilbage">
           <ChevronLeft />
         </button>
       </header>
 
       <main className="pick-body">
-        <h1 className="pick-title">Hvem er du?</h1>
-        <p className="pick-sub">Tryk på dit navn for at komme i gang.</p>
+        <h1 className="headline">Hvem er du?</h1>
 
-        <div className="pick-card">
-          <div className="pick-grid">
-            {!ready &&
-              members.length === 0 &&
-              Array.from({ length: 8 }, (_, i) => <span key={i} className="chip-skeleton" />)}
-            {members.map((m, i) => {
-              const isTraining = trainingIds.has(m.id)
-              return (
-                <motion.button
-                  key={m.id}
-                  className={`member-chip${me?.id === m.id ? ' is-me' : ''}${
-                    isTraining ? ' is-training' : ''
-                  }`}
-                  onClick={() => onPick(m)}
-                  disabled={isTraining}
-                  initial={{ opacity: 0, y: 10, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{
-                    delay: 0.02 * i,
-                    duration: 0.35,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  whileTap={{ scale: 0.96 }}
-                >
-                  <Avatar name={m.name} color={m.color} size={26} />
-                  <span className="member-chip-name">{m.name}</span>
-                </motion.button>
-              )
-            })}
-          </div>
+        <div className="pick-grid">
+          {!ready &&
+            members.length === 0 &&
+            Array.from({ length: 4 }, (_, i) => <span key={i} className="pick-skeleton" />)}
 
-          {ready && members.length === 0 && (
-            <p className="pick-empty">
-              Ingen personer endnu. Tilføj dem under administration.
-            </p>
-          )}
+          {members.map((m, i) => (
+            <motion.button
+              key={m.id}
+              className={`pick-card${training.has(m.id) ? ' is-busy' : ''}`}
+              onClick={() => onPick(m)}
+              disabled={training.has(m.id)}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.04 * i, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <Avatar name={m.name} size={52} />
+              <span className="pick-name">{m.name}</span>
+            </motion.button>
+          ))}
         </div>
       </main>
     </div>

@@ -4,14 +4,27 @@ export function formatClock(ms: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-/** "1 time 15 min", "45 min", "2 timer" */
-export function formatDuration(minutes: number): string {
+export type DurationPart = { value: number; unit: 't' | 'm' }
+
+/**
+ * Splits a duration so the UI can set the numbers and their units in different
+ * sizes: 90 → [1t, 30m], 45 → [45m], 120 → [2t].
+ */
+export function durationParts(minutes: number): DurationPart[] {
   const m = Math.max(0, Math.round(minutes))
-  const h = Math.floor(m / 60)
+  const hours = Math.floor(m / 60)
   const rest = m % 60
-  if (h === 0) return `${rest} min`
-  const hours = h === 1 ? '1 time' : `${h} timer`
-  return rest === 0 ? hours : `${hours} ${rest} min`
+  const parts: DurationPart[] = []
+  if (hours > 0) parts.push({ value: hours, unit: 't' })
+  if (rest > 0 || hours === 0) parts.push({ value: rest, unit: 'm' })
+  return parts
+}
+
+/** "1t 30m", "45m", "2t" */
+export function formatDuration(minutes: number): string {
+  return durationParts(minutes)
+    .map((p) => `${p.value}${p.unit}`)
+    .join(' ')
 }
 
 /** "45 min", "1:05" — compact form for countdowns. */

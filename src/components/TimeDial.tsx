@@ -3,7 +3,7 @@ import { tick } from '../lib/haptics'
 
 const SIZE = 300
 const CENTER = SIZE / 2
-/** The heavy brown wheel. */
+/** The heavy wheel you grab hold of. */
 const RING_R = 104
 const RING_W = 44
 /** Thin accent arc riding just outside the wheel. */
@@ -18,7 +18,8 @@ type Props = {
   min: number
   max: number
   step: number
-  accent: string
+  /** `dark` is a black wheel with a lime arc; `lime` inverts it. */
+  tone: 'dark' | 'lime'
   onChange?: (minutes: number) => void
   /** 0–1 fill override; defaults to minutes/max. */
   progress?: number
@@ -40,7 +41,7 @@ export function TimeDial({
   min,
   max,
   step,
-  accent,
+  tone,
   onChange,
   progress,
   interactive = true,
@@ -121,7 +122,9 @@ export function TimeDial({
   return (
     <div
       ref={wrapRef}
-      className={`dial${dragging ? ' is-dragging' : ''}${interactive && onChange ? ' is-interactive' : ''}`}
+      className={`dial tone-${tone}${dragging ? ' is-dragging' : ''}${
+        interactive && onChange ? ' is-interactive' : ''
+      }`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -156,15 +159,13 @@ export function TimeDial({
           cx={CENTER}
           cy={CENTER}
           r={ARC_R}
-          stroke={accent}
           strokeDasharray={`${fraction * CIRCUMFERENCE} ${CIRCUMFERENCE}`}
           transform={`rotate(-90 ${CENTER} ${CENTER})`}
         />
         {interactive && onChange && (
           <g className="dial-knob" transform={`translate(${knobX} ${knobY})`}>
             <circle r="13" className="dial-knob-halo" />
-            <circle r="8" className="dial-knob-dot" fill={accent} />
-            <circle r="3.4" className="dial-knob-pip" />
+            <circle r="8" className="dial-knob-dot" />
           </g>
         )}
       </svg>

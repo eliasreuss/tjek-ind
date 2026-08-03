@@ -1,6 +1,6 @@
 # Tjek ind
 
-En lille web-app til et privat fitnesscenter, der deles af omkring 15 personer. Den svarer på ét
+En lille web-app til et privat fitnesscenter. Den svarer på ét
 spørgsmål med det samme: **er centret ledigt lige nu, og hvornår bliver det frit?**
 
 Ingen login. Man vælger sit navn, drejer et hjul til det tidspunkt man er færdig, og trykker start.
@@ -14,8 +14,8 @@ Alle andre telefoner opdaterer sig selv i samme sekund.
 
 ## Sådan virker det
 
-- **Live status** — forsiden viser `Ledigt` eller `I brug`, hvem der træner, og hvornår hver person
-  er færdig.
+- **Live status** — forsiden svarer med det samme: enten `Centret er frit` eller det klokkeslæt,
+  hvor det bliver ledigt igen, med et kort per person der træner.
 - **Ingen brugerkonti** — man vælger sit navn fra listen. Valget huskes lokalt på telefonen, så
   næste gang går man direkte til hjulet.
 - **Drejehjulet** — én omgang dækker hele intervallet (15–180 min i spring på 5). Man kan også
@@ -44,8 +44,6 @@ To collections:
 | `members` | `name`, `createdAt` — dokument-ID er et slug af navnet, så den samme person aldrig kan oprettes to gange |
 | `sessions` | `memberId`, `memberName`, `startAt`, `endAt`, `active` |
 
-Farver gemmes ikke — de udledes af navnet, så en person altid ser ens ud alle steder.
-
 ## Kom i gang lokalt
 
 ```bash
@@ -61,11 +59,11 @@ styres af reglerne i `firestore.rules`.
 
 | Hvad | Hvor |
 | --- | --- |
-| Navnet i toppen og admin-koden | `src/config.ts` |
+| Admin-koden | `src/config.ts` |
 | Startlisten af personer (kun ved allerførste kørsel) | `STARTER_ROSTER` i `src/data/gym.ts` |
 | Farver, skrifttyper, runding, skygger | `src/styles/tokens.css` |
 | Længde-interval og genveje | `MIN` / `MAX` / `STEP` / `PRESETS` i `src/screens/DialScreen.tsx` |
-| App-ikon | `public/icon.svg`, kør derefter `npm run icon` |
+| App-ikon og forsidens illustration | `public/new_icon.png` og `public/illustration.png` |
 
 Personer tilføjes og fjernes løbende i appen: tryk på tandhjulet, indtast koden (standard `1234`).
 

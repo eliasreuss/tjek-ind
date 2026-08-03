@@ -13,7 +13,6 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import { colorForName } from '../lib/colors'
 import type { Member, Session } from './types'
 
 const members = collection(db, 'members')
@@ -27,11 +26,11 @@ export function watchMembers(onChange: (list: Member[]) => void, onError: (e: Er
     query(members, orderBy('name')),
     (snap) => {
       onChange(
-        snap.docs.map((d) => {
-          const name = String(d.data().name ?? '')
-          // Colour is derived from the name, never stored, so it can never drift.
-          return { id: d.id, name, color: colorForName(name), createdAt: Number(d.data().createdAt ?? 0) }
-        }),
+        snap.docs.map((d) => ({
+          id: d.id,
+          name: String(d.data().name ?? ''),
+          createdAt: Number(d.data().createdAt ?? 0),
+        })),
       )
     },
     onError,
@@ -47,12 +46,10 @@ export function watchActiveSessions(
     (snap) => {
       const list = snap.docs.map((d) => {
         const data = d.data()
-        const memberName = String(data.memberName ?? '')
         return {
           id: d.id,
           memberId: String(data.memberId ?? ''),
-          memberName,
-          color: colorForName(memberName),
+          memberName: String(data.memberName ?? ''),
           startAt: Number(data.startAt ?? 0),
           endAt: Number(data.endAt ?? 0),
           active: Boolean(data.active),

@@ -1,21 +1,19 @@
-import { initialsOf } from '../lib/colors'
+import { colorForName, initialsOf } from '../lib/name'
 
 type Props = {
   name: string
-  color: string
   size?: number
-  ring?: boolean
 }
 
-export function Avatar({ name, color, size = 32, ring = false }: Props) {
+export function Avatar({ name, size = 44 }: Props) {
   return (
     <span
-      className={`avatar${ring ? ' has-ring' : ''}`}
+      className="avatar"
       style={{
-        background: color,
         width: size,
         height: size,
-        fontSize: size * 0.4,
+        fontSize: size * 0.36,
+        background: colorForName(name),
       }}
       aria-hidden="true"
     >

@@ -5,7 +5,7 @@ import { ChevronLeft } from '../components/Icons'
 import { TimeDial } from '../components/TimeDial'
 import { useGym } from '../hooks/gymContext'
 import { thud } from '../lib/haptics'
-import { formatClock, formatDuration, MINUTE } from '../lib/time'
+import { durationParts, formatClock, formatDuration, MINUTE } from '../lib/time'
 import type { Member } from '../data/types'
 
 const MIN = 15
@@ -20,10 +20,9 @@ type Props = {
 }
 
 export function DialScreen({ member, onBack, onStarted }: Props) {
-  const { start, now, busy, freeAt } = useGym()
+  const { start, now } = useGym()
   const [minutes, setMinutes] = useState(60)
   const [pending, setPending] = useState(false)
-  const endAt = now + minutes * MINUTE
 
   // Firestore applies the write to its local cache instantly, so the UI can move
   // on without waiting for the server to acknowledge it.
@@ -36,32 +35,37 @@ export function DialScreen({ member, onBack, onStarted }: Props) {
   }
 
   return (
-    <div className="screen screen-amber">
+    <div className="screen">
       <header className="topbar">
-        <button className="icon-btn on-amber" onClick={onBack} aria-label="Tilbage">
+        <button className="icon-btn" onClick={onBack} aria-label="Tilbage">
           <ChevronLeft />
         </button>
-        <button className="who-pill" onClick={onBack}>
-          <Avatar name={member.name} color={member.color} size={24} />
+        <button className="who" onClick={onBack}>
+          <Avatar name={member.name} size={30} />
           {member.name}
-          <em>skift</em>
         </button>
       </header>
 
       <main className="dial-body">
         <motion.div
-          className="dial-readout"
+          className="readout"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
-          <span className="dial-eyebrow">Jeg er færdig kl.</span>
-          <span className="dial-clock">{formatClock(endAt)}</span>
-          <span className="dial-length">{formatDuration(minutes)}</span>
+          <span className="readout-big">
+            {durationParts(minutes).map((p) => (
+              <span key={p.unit} className="readout-part">
+                {p.value}
+                <em>{p.unit}</em>
+              </span>
+            ))}
+          </span>
+          <span className="readout-sub">Færdig {formatClock(now + minutes * MINUTE)}</span>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.92 }}
+          initial={{ opacity: 0, scale: 0.93 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -70,40 +74,27 @@ export function DialScreen({ member, onBack, onStarted }: Props) {
             min={MIN}
             max={MAX}
             step={STEP}
-            accent="var(--sage)"
+            tone="dark"
             onChange={setMinutes}
             label="Træningens længde"
           >
-            <button
-              className="core-btn core-green"
-              onClick={begin}
-              disabled={pending}
-              aria-label={`Start træning indtil ${formatClock(endAt)}`}
-            >
+            <button className="core core-lime" onClick={begin} disabled={pending}>
               Start
-              <br />
-              træning
             </button>
           </TimeDial>
         </motion.div>
 
-        <div className="preset-row">
+        <div className="chips">
           {PRESETS.map((p) => (
             <button
               key={p}
-              className={`preset${minutes === p ? ' is-active' : ''}`}
+              className={`chip${minutes === p ? ' is-on' : ''}`}
               onClick={() => setMinutes(p)}
             >
-              {p} min
+              {formatDuration(p)}
             </button>
           ))}
         </div>
-
-        {busy && freeAt && (
-          <p className="dial-note">
-            Der er andre i centret indtil <strong>{formatClock(freeAt)}</strong>
-          </p>
-        )}
       </main>
     </div>
   )

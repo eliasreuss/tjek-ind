@@ -47,13 +47,12 @@ export function AdminSheet({ open, onClose }: Props) {
     await addMember(clean)
   }
 
-  const trainingIds = new Set(active.map((s) => s.memberId))
+  const training = new Set(active.map((s) => s.memberId))
 
   return (
-    <Sheet open={open} title="Administration" onClose={onClose}>
+    <Sheet open={open} title="Personer" onClose={onClose}>
       {!unlocked ? (
         <form className="pin-form" onSubmit={submitPin}>
-          <p className="sheet-lead">Indtast koden for at redigere personerne.</p>
           <motion.input
             className="pin-input"
             type="password"
@@ -66,7 +65,7 @@ export function AdminSheet({ open, onClose }: Props) {
             transition={{ duration: 0.45 }}
             aria-label="Adgangskode"
           />
-          <button className="cta cta-compact" type="submit">
+          <button className="cta cta-block" type="submit">
             Lås op
           </button>
         </form>
@@ -75,7 +74,7 @@ export function AdminSheet({ open, onClose }: Props) {
           <form className="add-row" onSubmit={submitName}>
             <input
               className="text-input"
-              placeholder="Tilføj en person…"
+              placeholder="Nyt navn"
               value={name}
               onChange={(e) => setName(e.target.value)}
               aria-label="Navn på ny person"
@@ -97,13 +96,13 @@ export function AdminSheet({ open, onClose }: Props) {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <Avatar name={m.name} color={m.color} size={34} />
+                  <Avatar name={m.name} size={38} />
                   <span className="admin-name">
                     {m.name}
-                    {trainingIds.has(m.id) && <em className="tag-live">træner nu</em>}
+                    {training.has(m.id) && <i className="live-dot" />}
                   </span>
                   {confirmId === m.id ? (
-                    <span className="confirm-group">
+                    <span className="confirm">
                       <button className="confirm-yes" onClick={() => removeMember(m.id)}>
                         Slet
                       </button>
@@ -126,20 +125,15 @@ export function AdminSheet({ open, onClose }: Props) {
           </ul>
 
           {active.length > 0 && (
-            <button className="admin-action" onClick={() => stopAll()}>
-              Afslut alle igangværende træninger
-              <em>Til når nogen er gået uden at tjekke ud</em>
+            <button className="ghost-btn" onClick={() => stopAll()}>
+              Afslut alle træninger
             </button>
           )}
-
-          <div className="admin-foot">
-            <span className="admin-count">{members.length} personer</span>
-            {me && (
-              <button className="link-btn" onClick={() => setMe(null)}>
-                Glem “{me.name}” på denne telefon
-              </button>
-            )}
-          </div>
+          {me && (
+            <button className="ghost-btn" onClick={() => setMe(null)}>
+              Glem “{me.name}” på denne telefon
+            </button>
+          )}
         </>
       )}
     </Sheet>
