@@ -9,13 +9,16 @@ export type GymValue = {
   /** Sessions that are running right now, soonest to finish first. */
   active: Session[]
   busy: boolean
+  /** Bodies in the gym: everyone checked in, plus the guests they brought. */
+  peopleTraining: number
   /** When the gym frees up, i.e. the latest end time of any running session. */
   freeAt: number | null
   me: Member | null
   mySession: Session | null
   setMe: (memberId: string | null) => void
-  start: (member: Member, endAt: number) => Promise<void>
+  start: (member: Member, endAt: number, guests?: number) => Promise<void>
   extend: (sessionId: string, endAt: number) => Promise<void>
+  setGuests: (sessionId: string, guests: number) => Promise<void>
   stop: (sessionId: string) => Promise<void>
   stopAll: () => Promise<void>
   addMember: (name: string) => Promise<void>

@@ -11,4 +11,6 @@ export type Session = {
   startAt: number
   endAt: number
   active: boolean
+  /** People brought along who have no profile of their own. */
+  guests: number
 }

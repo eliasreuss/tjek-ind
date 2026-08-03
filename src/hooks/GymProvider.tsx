@@ -82,15 +82,17 @@ export function GymProvider({ children }: { children: ReactNode }) {
     members,
     active,
     busy: active.length > 0,
+    peopleTraining: active.reduce((n, s) => n + 1 + s.guests, 0),
     freeAt: active.length > 0 ? Math.max(...active.map((s) => s.endAt)) : null,
     me,
     mySession,
     setMe,
-    start: (member, endAt) => {
+    start: (member, endAt, guests) => {
       setMe(member.id)
-      return report(gym.startSession)(member, endAt)
+      return report(gym.startSession)(member, endAt, guests)
     },
     extend: report(gym.extendSession),
+    setGuests: report(gym.setSessionGuests),
     stop: report(gym.stopSession),
     stopAll: report(gym.stopAllSessions),
     addMember: report(gym.addMember),

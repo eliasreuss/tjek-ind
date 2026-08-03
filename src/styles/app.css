@@ -129,15 +129,46 @@
 
 .person {
   position: relative;
+  /* Overlapping avatars ring themselves in the card's own colour to separate. */
+  --card: var(--white);
   padding: 22px 24px 24px;
   border-radius: var(--r-card);
-  background: var(--white);
+  background: var(--card);
   border: 1px solid var(--line);
 }
 
 .person.is-me {
-  background: var(--lime);
+  --card: var(--lime);
   border-color: var(--lime);
+}
+
+.person-stack {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.person-stack > * {
+  box-shadow: 0 0 0 3px var(--card);
+}
+
+.person-stack > * + * {
+  margin-left: -12px;
+}
+
+.guest-av {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .person-top {
@@ -408,9 +439,30 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 32px;
   padding: 4px var(--gutter) calc(var(--safe-bottom) + 28px);
+  overflow-y: auto;
+}
+
+/* Auto margins centre the stack but, unlike justify-content, never clip the top
+   edge when the content is taller than the screen. */
+.dial-body > :first-child {
+  margin-top: auto;
+}
+
+.dial-body > :last-child {
+  margin-bottom: auto;
+}
+
+/* Short phones need the dial to give way so the presets and guests still fit. */
+@media (max-height: 750px) {
+  .dial-body {
+    gap: 18px;
+  }
+
+  .dial {
+    width: min(258px, 66vw);
+  }
 }
 
 .readout {
@@ -635,6 +687,53 @@
   background: var(--lime);
   border-color: var(--lime);
   color: var(--ink);
+}
+
+/* ── Guest stepper ───────────────────────────────────────────────────────── */
+
+.guests {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 20px;
+  border-radius: var(--r-pill);
+  background: var(--white);
+  border: 1px solid var(--line);
+}
+
+.guests-label {
+  margin-right: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.guests-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  transition: transform 0.18s var(--ease-spring), opacity 0.18s;
+}
+
+.guests-btn:active {
+  transform: scale(0.9);
+}
+
+.guests-btn:disabled {
+  opacity: 0.3;
+}
+
+.guests-count {
+  min-width: 26px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Sheet ───────────────────────────────────────────────────────────────── */

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Avatar } from '../components/Avatar'
+import { GuestStepper } from '../components/GuestStepper'
 import { ChevronLeft } from '../components/Icons'
 import { TimeDial } from '../components/TimeDial'
 import { useGym } from '../hooks/gymContext'
@@ -19,7 +20,7 @@ type Props = {
 }
 
 export function ActiveScreen({ session, onBack, onStopped }: Props) {
-  const { now, extend, stop } = useGym()
+  const { now, extend, stop, setGuests } = useGym()
   const [confirming, setConfirming] = useState(false)
   const confirmTimer = useRef<number>(0)
 
@@ -97,6 +98,8 @@ export function ActiveScreen({ session, onBack, onStopped }: Props) {
             </button>
           ))}
         </div>
+
+        <GuestStepper value={session.guests} onChange={(n) => setGuests(session.id, n)} />
       </main>
     </div>
   )

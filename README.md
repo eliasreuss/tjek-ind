@@ -19,9 +19,12 @@ Alle andre telefoner opdaterer sig selv i samme sekund.
 - **Ingen brugerkonti** — man vælger sit navn fra listen. Valget huskes lokalt på telefonen, så
   næste gang går man direkte til hjulet.
 - **Drejehjulet** — én omgang dækker hele intervallet (15–180 min i spring på 5). Man kan også
-  bruge genvejene 30/45/60/90 min eller piletasterne.
-- **Under træning** — hjulet tæller ned. Man kan dreje for at ændre sluttidspunktet eller trykke
-  `+15 min`. Stop kræver to tryk, så man ikke afslutter ved et uheld.
+  bruge genvejene 30m/45m/1t/1t 30m eller piletasterne.
+- **Gæster** — har man nogen med, skruer man antallet op (0–5) uden at oprette profiler. Gæsterne
+  vises på ens eget kort og tælles med i "N træner lige nu". De følger ens egen tid, så de
+  forsvinder automatisk, når man tjekker ud.
+- **Under træning** — hjulet tæller ned. Man kan dreje for at ændre sluttidspunktet, trykke
+  `+15m`, eller rette antallet af gæster. Stop kræver to tryk, så man ikke afslutter ved et uheld.
 - **Automatisk oprydning** — en træning udløber af sig selv, når tiden er gået, også hvis nogen
   glemmer at tjekke ud. Administratoren kan derudover afslutte alt manuelt.
 
@@ -42,7 +45,9 @@ To collections:
 | Collection | Felter |
 | --- | --- |
 | `members` | `name`, `createdAt` — dokument-ID er et slug af navnet, så den samme person aldrig kan oprettes to gange |
-| `sessions` | `memberId`, `memberName`, `startAt`, `endAt`, `active` |
+| `sessions` | `memberId`, `memberName`, `startAt`, `endAt`, `active`, `guests` |
+
+Gæster er kun et tal på sessionen, ikke egne dokumenter — derfor kræver de ingen oprydning.
 
 ## Kom i gang lokalt
 
@@ -63,6 +68,7 @@ styres af reglerne i `firestore.rules`.
 | Startlisten af personer (kun ved allerførste kørsel) | `STARTER_ROSTER` i `src/data/gym.ts` |
 | Farver, skrifttyper, runding, skygger | `src/styles/tokens.css` |
 | Længde-interval og genveje | `MIN` / `MAX` / `STEP` / `PRESETS` i `src/screens/DialScreen.tsx` |
+| Maks antal gæster | `MAX_GUESTS` i `src/components/GuestStepper.tsx` |
 | App-ikon og forsidens illustration | `public/new_icon.png` og `public/illustration.png` |
 
 Personer tilføjes og fjernes løbende i appen: tryk på tandhjulet, indtast koden (standard `1234`).

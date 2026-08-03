@@ -39,6 +39,12 @@ export const Plus = ({ size = DEFAULT_SIZE }: IconProps) => (
   </svg>
 )
 
+export const Minus = ({ size = DEFAULT_SIZE }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M5 12h14" />
+  </svg>
+)
+
 export const Close = ({ size = DEFAULT_SIZE }: IconProps) => (
   <svg {...base(size)}>
     <path d="M18 6L6 18M6 6l12 12" />

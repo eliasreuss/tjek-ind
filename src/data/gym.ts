@@ -53,6 +53,7 @@ export function watchActiveSessions(
           startAt: Number(data.startAt ?? 0),
           endAt: Number(data.endAt ?? 0),
           active: Boolean(data.active),
+          guests: Number(data.guests ?? 0),
         }
       })
       list.sort((a, b) => a.endAt - b.endAt)
@@ -100,19 +101,28 @@ export async function removeMember(id: string) {
   await deleteDoc(doc(members, id))
 }
 
-export async function startSession(member: Member, endAt: number): Promise<string> {
+export async function startSession(
+  member: Member,
+  endAt: number,
+  guests = 0,
+): Promise<string> {
   const ref = await addDoc(sessions, {
     memberId: member.id,
     memberName: member.name,
     startAt: Date.now(),
     endAt,
     active: true,
+    guests,
   })
   return ref.id
 }
 
 export async function extendSession(sessionId: string, endAt: number) {
   await updateDoc(doc(sessions, sessionId), { endAt })
+}
+
+export async function setSessionGuests(sessionId: string, guests: number) {
+  await updateDoc(doc(sessions, sessionId), { guests: Math.max(0, Math.round(guests)) })
 }
 
 export async function stopSession(sessionId: string) {

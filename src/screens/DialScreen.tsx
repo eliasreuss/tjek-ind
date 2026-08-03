@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Avatar } from '../components/Avatar'
+import { GuestStepper } from '../components/GuestStepper'
 import { ChevronLeft } from '../components/Icons'
 import { TimeDial } from '../components/TimeDial'
 import { useGym } from '../hooks/gymContext'
@@ -22,6 +23,7 @@ type Props = {
 export function DialScreen({ member, onBack, onStarted }: Props) {
   const { start, now } = useGym()
   const [minutes, setMinutes] = useState(60)
+  const [guests, setGuests] = useState(0)
   const [pending, setPending] = useState(false)
 
   // Firestore applies the write to its local cache instantly, so the UI can move
@@ -30,7 +32,7 @@ export function DialScreen({ member, onBack, onStarted }: Props) {
     if (pending) return
     setPending(true)
     thud()
-    start(member, Date.now() + minutes * MINUTE)
+    start(member, Date.now() + minutes * MINUTE, guests)
     onStarted()
   }
 
@@ -95,6 +97,8 @@ export function DialScreen({ member, onBack, onStarted }: Props) {
             </button>
           ))}
         </div>
+
+        <GuestStepper value={guests} onChange={setGuests} />
       </main>
     </div>
   )

@@ -29,11 +29,27 @@ function PersonCard({ session, now, isMe }: { session: Session; now: number; isM
   const total = Math.max(1, session.endAt - session.startAt)
   const done = Math.min(100, Math.max(0, (1 - left / total) * 100))
   const parts = durationParts(Math.ceil(left / MINUTE))
+  // Beyond three guests the row of identical circles stops being readable, so
+  // the tail collapses into a count.
+  const shownGuests = session.guests > 3 ? 2 : session.guests
+  const restGuests = session.guests - shownGuests
 
   return (
     <article className={`person${isMe ? ' is-me' : ''}`}>
       <div className="person-top">
-        <Avatar name={session.memberName} size={44} />
+        <span className="person-stack">
+          <Avatar name={session.memberName} size={44} />
+          {Array.from({ length: shownGuests }, (_, i) => (
+            <span key={i} className="guest-av" aria-hidden="true">
+              G
+            </span>
+          ))}
+          {restGuests > 0 && (
+            <span className="guest-av" aria-hidden="true">
+              +{restGuests}
+            </span>
+          )}
+        </span>
         <span className={`person-badge${parts.length > 1 ? ' is-split' : ''}`}>
           {parts.map((p) => (
             <span key={p.unit}>
@@ -44,7 +60,10 @@ function PersonCard({ session, now, isMe }: { session: Session; now: number; isM
         </span>
       </div>
       <h2 className="person-name">{session.memberName}</h2>
-      <p className="person-meta">Slutter {formatClock(session.endAt)}</p>
+      <p className="person-meta">
+        Slutter {formatClock(session.endAt)}
+        {session.guests > 0 && ` · ${session.guests} ${session.guests === 1 ? 'gæst' : 'gæster'}`}
+      </p>
       <div className="person-bar">
         <i style={{ width: `${done}%` }} />
       </div>
@@ -53,7 +72,8 @@ function PersonCard({ session, now, isMe }: { session: Session; now: number; isM
 }
 
 export function HomeScreen({ onStart, onOpenSession, onOpenAdmin }: Props) {
-  const { busy, active, freeAt, now, mySession, ready } = useGym()
+  const { busy, active, freeAt, now, mySession, peopleTraining, ready } = useGym()
+  const soloWithoutGuests = active.length === 1 && active[0].guests === 0
 
   return (
     <div className="screen">
@@ -65,9 +85,9 @@ export function HomeScreen({ onStart, onOpenSession, onOpenAdmin }: Props) {
             <motion.div variants={rise} initial="hidden" animate="show" custom={0}>
               <h1 className="headline">Ledigt kl. {formatClock(freeAt ?? now)}</h1>
               <p className="lede">
-                {active.length === 1
+                {soloWithoutGuests
                   ? `${active[0].memberName} træner lige nu`
-                  : `${active.length} træner lige nu`}
+                  : `${peopleTraining} træner lige nu`}
               </p>
             </motion.div>
 
