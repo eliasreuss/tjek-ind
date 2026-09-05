@@ -2,6 +2,8 @@ export type Member = {
   id: string
   name: string
   createdAt: number
+  /** Training days per week that keep this person's streak alive. */
+  weeklyGoal: number
 }
 
 export type Session = {

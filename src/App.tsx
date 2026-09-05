@@ -4,6 +4,7 @@ import { AdminSheet } from './screens/AdminSheet'
 import { ActiveScreen } from './screens/ActiveScreen'
 import { DialScreen } from './screens/DialScreen'
 import { HomeScreen } from './screens/HomeScreen'
+import { GoalSheet } from './screens/GoalSheet'
 import { PickMemberScreen } from './screens/PickMemberScreen'
 import { GymProvider } from './hooks/GymProvider'
 import { useGym } from './hooks/gymContext'
@@ -25,6 +26,7 @@ function Shell() {
   const [route, setRoute] = useState<Route>('home')
   const [picked, setPicked] = useState<Member | null>(null)
   const [adminOpen, setAdminOpen] = useState(false)
+  const [goalFor, setGoalFor] = useState<Member | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
@@ -64,6 +66,7 @@ function Shell() {
           <motion.div key="pick" className="route" {...slide}>
             <PickMemberScreen
               onBack={() => setRoute('home')}
+              onEditGoal={setGoalFor}
               onPick={(m) => {
                 setPicked(m)
                 setRoute('dial')
@@ -78,7 +81,7 @@ function Shell() {
               member={picked}
               onBack={() => setRoute('pick')}
               onStarted={() => {
-                setToast('Træning startet — god fornøjelse')
+                setToast('Træning startet, god fornøjelse')
                 setRoute('home')
               }}
             />
@@ -99,6 +102,7 @@ function Shell() {
         )}
       </AnimatePresence>
 
+      <GoalSheet member={goalFor} onClose={() => setGoalFor(null)} />
       <AdminSheet open={adminOpen} onClose={() => setAdminOpen(false)} />
 
       <AnimatePresence>

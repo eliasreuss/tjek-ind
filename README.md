@@ -27,6 +27,10 @@ Alle andre telefoner opdaterer sig selv i samme sekund.
   `+15m`, eller rette antallet af gæster. Stop kræver to tryk, så man ikke afslutter ved et uheld.
 - **Automatisk oprydning** — en træning udløber af sig selv, når tiden er gået, også hvis nogen
   glemmer at tjekke ud. Administratoren kan derudover afslutte alt manuelt.
+- **Streaks** — hvert navn på "Hvem er du?"-siden viser sin streak, og tandhjulet på kortet åbner
+  målet. En uge tæller, når man har trænet lige så mange dage, som målet siger, og streaken er
+  antallet af uger i træk. At tjekke ind *er* logbogen — der er ikke noget at registrere bagefter.
+  Målet kan skrues op og ned (1–7 dage), og da der ikke er brugerkonti, kan alle rette alles mål.
 
 ## Teknik
 
@@ -44,10 +48,14 @@ To collections:
 
 | Collection | Felter |
 | --- | --- |
-| `members` | `name`, `createdAt` — dokument-ID er et slug af navnet, så den samme person aldrig kan oprettes to gange |
+| `members` | `name`, `createdAt`, `weeklyGoal` — dokument-ID er et slug af navnet, så den samme person aldrig kan oprettes to gange |
 | `sessions` | `memberId`, `memberName`, `startAt`, `endAt`, `active`, `guests` |
 
 Gæster er kun et tal på sessionen, ikke egne dokumenter — derfor kræver de ingen oprydning.
+
+Afsluttede sessioner slettes ikke, de får blot `active: false`. Det er dem streaks regnes ud fra:
+appen lytter på det seneste års sessioner og tæller trænings*dage* per uge, så to indtjekninger
+samme aften kun tæller én gang.
 
 ## Kom i gang lokalt
 
@@ -69,6 +77,7 @@ styres af reglerne i `firestore.rules`.
 | Farver, skrifttyper, runding, skygger | `src/styles/tokens.css` |
 | Længde-interval og genveje | `MIN` / `MAX` / `STEP` / `PRESETS` i `src/screens/DialScreen.tsx` |
 | Maks antal gæster | `MAX_GUESTS` i `src/components/GuestStepper.tsx` |
+| Standardmål, grænser og historikkens længde | `src/lib/streak.ts` |
 | App-ikon og forsidens illustration | `public/new_icon.png` og `public/illustration.png` |
 
 Personer tilføjes og fjernes løbende i appen: tryk på tandhjulet, indtast koden (standard `1234`).
@@ -99,4 +108,4 @@ kræver `auth != null`.
 ## Næste version
 
 - **Kø-system** — stil dig i kø med ét tryk, så den nuværende bruger kan se, hvem der venter
-- **Træningshistorik** — tryk på dit eget navn og se statistik over tidligere træninger
+- **Træningshistorik** — se ugerne enkeltvis bag streaken, ikke bare tællingen

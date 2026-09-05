@@ -11,8 +11,11 @@ import {
   updateDoc,
   where,
   writeBatch,
+  type DocumentData,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+import { DEFAULT_WEEKLY_GOAL, MAX_WEEKLY_GOAL, MIN_WEEKLY_GOAL } from '../lib/streak'
 import type { Member, Session } from './types'
 
 const members = collection(db, 'members')
@@ -30,11 +33,26 @@ export function watchMembers(onChange: (list: Member[]) => void, onError: (e: Er
           id: d.id,
           name: String(d.data().name ?? ''),
           createdAt: Number(d.data().createdAt ?? 0),
+          // Members created before goals existed simply inherit the default.
+          weeklyGoal: Number(d.data().weeklyGoal ?? DEFAULT_WEEKLY_GOAL),
         })),
       )
     },
     onError,
   )
+}
+
+function toSession(d: QueryDocumentSnapshot<DocumentData>): Session {
+  const data = d.data()
+  return {
+    id: d.id,
+    memberId: String(data.memberId ?? ''),
+    memberName: String(data.memberName ?? ''),
+    startAt: Number(data.startAt ?? 0),
+    endAt: Number(data.endAt ?? 0),
+    active: Boolean(data.active),
+    guests: Number(data.guests ?? 0),
+  }
 }
 
 export function watchActiveSessions(
@@ -44,21 +62,26 @@ export function watchActiveSessions(
   return onSnapshot(
     query(sessions, where('active', '==', true)),
     (snap) => {
-      const list = snap.docs.map((d) => {
-        const data = d.data()
-        return {
-          id: d.id,
-          memberId: String(data.memberId ?? ''),
-          memberName: String(data.memberName ?? ''),
-          startAt: Number(data.startAt ?? 0),
-          endAt: Number(data.endAt ?? 0),
-          active: Boolean(data.active),
-          guests: Number(data.guests ?? 0),
-        }
-      })
+      const list = snap.docs.map(toSession)
       list.sort((a, b) => a.endAt - b.endAt)
       onChange(list)
     },
+    onError,
+  )
+}
+
+/**
+ * Finished sessions are kept, so the streaks can be counted from the same rows
+ * the live view uses — checking in *is* the log entry.
+ */
+export function watchSessionsSince(
+  since: number,
+  onChange: (list: Session[]) => void,
+  onError: (e: Error) => void,
+) {
+  return onSnapshot(
+    query(sessions, where('startAt', '>=', since)),
+    (snap) => onChange(snap.docs.map(toSession)),
     onError,
   )
 }
@@ -85,7 +108,11 @@ export async function seedIfEmpty() {
   if (!snap.empty) return
   const batch = writeBatch(db)
   STARTER_ROSTER.forEach((name, i) => {
-    batch.set(doc(members, idFor(name)), { name, createdAt: Date.now() + i })
+    batch.set(doc(members, idFor(name)), {
+      name,
+      createdAt: Date.now() + i,
+      weeklyGoal: DEFAULT_WEEKLY_GOAL,
+    })
   })
   await batch.commit()
 }
@@ -94,11 +121,21 @@ export async function addMember(name: string) {
   const clean = name.trim()
   const id = idFor(clean)
   if (!clean || !id) return
-  await setDoc(doc(members, id), { name: clean, createdAt: Date.now() })
+  await setDoc(doc(members, id), {
+    name: clean,
+    createdAt: Date.now(),
+    weeklyGoal: DEFAULT_WEEKLY_GOAL,
+  })
 }
 
 export async function removeMember(id: string) {
   await deleteDoc(doc(members, id))
+}
+
+/** No accounts means no ownership: any phone can retune anyone's goal. */
+export async function setMemberGoal(id: string, goal: number) {
+  const clamped = Math.min(MAX_WEEKLY_GOAL, Math.max(MIN_WEEKLY_GOAL, Math.round(goal)))
+  await updateDoc(doc(members, id), { weeklyGoal: clamped })
 }
 
 export async function startSession(

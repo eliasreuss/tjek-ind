@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { Avatar } from '../components/Avatar'
-import { ArrowRight, Gear } from '../components/Icons'
+import { ArrowRight, Flame, Gear } from '../components/Icons'
 import { useGym } from '../hooks/gymContext'
+import { formatWeeks, type Streak } from '../lib/streak'
 import { durationParts, formatClock, MINUTE } from '../lib/time'
 import type { Session } from '../data/types'
 
@@ -24,7 +25,15 @@ const rise = {
   }),
 }
 
-function PersonCard({ session, now, isMe }: { session: Session; now: number; isMe: boolean }) {
+function PersonCard({
+  session,
+  now,
+  streak,
+}: {
+  session: Session
+  now: number
+  streak?: Streak
+}) {
   const left = Math.max(0, session.endAt - now)
   const total = Math.max(1, session.endAt - session.startAt)
   const done = Math.min(100, Math.max(0, (1 - left / total) * 100))
@@ -35,7 +44,7 @@ function PersonCard({ session, now, isMe }: { session: Session; now: number; isM
   const restGuests = session.guests - shownGuests
 
   return (
-    <article className={`person${isMe ? ' is-me' : ''}`}>
+    <article className="person">
       <div className="person-top">
         <span className="person-stack">
           <Avatar name={session.memberName} size={44} />
@@ -50,7 +59,10 @@ function PersonCard({ session, now, isMe }: { session: Session; now: number; isM
             </span>
           )}
         </span>
-        <span className={`person-badge${parts.length > 1 ? ' is-split' : ''}`}>
+
+        <h2 className="person-name">{session.memberName}</h2>
+
+        <span className="person-badge">
           {parts.map((p) => (
             <span key={p.unit}>
               {p.value}
@@ -59,20 +71,32 @@ function PersonCard({ session, now, isMe }: { session: Session; now: number; isM
           ))}
         </span>
       </div>
-      <h2 className="person-name">{session.memberName}</h2>
-      <p className="person-meta">
-        Slutter {formatClock(session.endAt)}
-        {session.guests > 0 && ` · ${session.guests} ${session.guests === 1 ? 'gæst' : 'gæster'}`}
-      </p>
+
       <div className="person-bar">
         <i style={{ width: `${done}%` }} />
+      </div>
+
+      {/* The streak sits down here rather than beside the name, so a long name
+          gets the whole top line to itself. */}
+      <div className="person-foot">
+        {streak && streak.weeks > 0 && (
+          <span className="person-streak" aria-label={`${formatWeeks(streak.weeks)} i træk`}>
+            {streak.weeks}
+            <Flame size={17} filled />
+          </span>
+        )}
+        <p className="person-meta">
+          Slutter {formatClock(session.endAt)}
+          {session.guests > 0 &&
+            ` · ${session.guests} ${session.guests === 1 ? 'gæst' : 'gæster'}`}
+        </p>
       </div>
     </article>
   )
 }
 
 export function HomeScreen({ onStart, onOpenSession, onOpenAdmin }: Props) {
-  const { busy, active, freeAt, now, mySession, peopleTraining, ready } = useGym()
+  const { busy, active, freeAt, now, mySession, peopleTraining, ready, streaks } = useGym()
   const soloWithoutGuests = active.length === 1 && active[0].guests === 0
 
   return (
@@ -100,7 +124,7 @@ export function HomeScreen({ onStart, onOpenSession, onOpenAdmin }: Props) {
                   animate="show"
                   custom={i + 1}
                 >
-                  <PersonCard session={s} now={now} isMe={mySession?.id === s.id} />
+                  <PersonCard session={s} now={now} streak={streaks[s.memberId]} />
                 </motion.div>
               ))}
             </div>
@@ -132,7 +156,6 @@ export function HomeScreen({ onStart, onOpenSession, onOpenAdmin }: Props) {
         {mySession ? (
           <button className="cta" onClick={onOpenSession}>
             <span className="cta-label">Afslut træning</span>
-            <span className="cta-tail">{formatClock(mySession.endAt)}</span>
             <span className="cta-orb">
               <ArrowRight size={24} />
             </span>
