@@ -50,7 +50,7 @@ export function AdminSheet({ open, onClose }: Props) {
   const training = new Set(active.map((s) => s.memberId))
 
   return (
-    <Sheet open={open} title="Personer" onClose={onClose}>
+    <Sheet open={open} title="Administrer personer" onClose={onClose}>
       {!unlocked ? (
         <form className="pin-form" onSubmit={submitPin}>
           <motion.input

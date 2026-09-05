@@ -27,6 +27,10 @@ export type GymValue = {
   addMember: (name: string) => Promise<void>
   removeMember: (id: string) => Promise<void>
   setGoal: (memberId: string, goal: number) => Promise<void>
+  undoLast: (memberId: string) => Promise<void>
+  resetHistory: (memberId: string) => Promise<void>
+  /** How many logged sessions each member has in the streak window. */
+  sessionCounts: Record<string, number>
 }
 
 export const GymContext = createContext<GymValue | null>(null)

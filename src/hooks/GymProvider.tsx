@@ -73,7 +73,7 @@ export function GymProvider({ children }: { children: ReactNode }) {
   // Pinned to the start of the week rather than `now`, so the ticking clock
   // doesn't re-tally everyone's history once a second.
   const weekStart = startOfWeek(now)
-  const streaks = useMemo(() => {
+  const { streaks, sessionCounts } = useMemo(() => {
     const byMember = new Map<string, Session[]>()
     for (const s of history) {
       const list = byMember.get(s.memberId)
@@ -81,10 +81,13 @@ export function GymProvider({ children }: { children: ReactNode }) {
       else byMember.set(s.memberId, [s])
     }
     const out: Record<string, Streak> = {}
+    const counts: Record<string, number> = {}
     for (const m of members) {
-      out[m.id] = computeStreak(byMember.get(m.id) ?? [], m.weeklyGoal, weekStart)
+      const list = byMember.get(m.id) ?? []
+      out[m.id] = computeStreak(list, m.weeklyGoal, weekStart)
+      counts[m.id] = list.length
     }
-    return out
+    return { streaks: out, sessionCounts: counts }
   }, [history, members, weekStart])
 
   const me = useMemo(() => members.find((m) => m.id === meId) ?? null, [members, meId])
@@ -119,6 +122,7 @@ export function GymProvider({ children }: { children: ReactNode }) {
     me,
     mySession,
     streaks,
+    sessionCounts,
     setMe,
     start: (member, endAt, guests) => {
       setMe(member.id)
@@ -131,6 +135,8 @@ export function GymProvider({ children }: { children: ReactNode }) {
     addMember: report(gym.addMember),
     removeMember: report(gym.removeMember),
     setGoal: report(gym.setMemberGoal),
+    undoLast: report(gym.deleteLatestSession),
+    resetHistory: report(gym.deleteMemberSessions),
   }
 
   return <GymContext.Provider value={value}>{children}</GymContext.Provider>

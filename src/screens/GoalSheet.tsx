@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Avatar } from '../components/Avatar'
 import { Flame, Minus, Plus } from '../components/Icons'
 import { Sheet } from '../components/Sheet'
@@ -13,8 +14,14 @@ type Props = {
 }
 
 export function GoalSheet({ member, onClose }: Props) {
-  const { streaks, setGoal } = useGym()
+  const { streaks, sessionCounts, setGoal, undoLast, resetHistory } = useGym()
   const streak = member ? streaks[member.id] : undefined
+  const logged = member ? (sessionCounts[member.id] ?? 0) : 0
+  const [confirmReset, setConfirmReset] = useState(false)
+
+  useEffect(() => {
+    setConfirmReset(false)
+  }, [member])
 
   const nudge = (goal: number) => {
     if (!member) return
@@ -75,6 +82,28 @@ export function GoalSheet({ member, onClose }: Props) {
             Du får streak ved at nå dit ugentlige mål. 1 flamme = 1 uge hvor du ramte
             målet.
           </p>
+
+          <button
+            className="ghost-btn"
+            disabled={logged === 0}
+            onClick={() => void undoLast(member.id)}
+          >
+            Fortryd sidste træning
+          </button>
+          <button
+            className="ghost-btn"
+            disabled={logged === 0}
+            onClick={() => {
+              if (!confirmReset) {
+                setConfirmReset(true)
+                return
+              }
+              setConfirmReset(false)
+              void resetHistory(member.id)
+            }}
+          >
+            {confirmReset ? 'Sikker? Sletter alle træninger' : 'Nulstil alle træninger'}
+          </button>
         </>
       )}
     </Sheet>

@@ -31,6 +31,7 @@ Alle andre telefoner opdaterer sig selv i samme sekund.
   målet. En uge tæller, når man har trænet lige så mange dage, som målet siger, og streaken er
   antallet af uger i træk. At tjekke ind *er* logbogen — der er ikke noget at registrere bagefter.
   Målet kan skrues op og ned (1–7 dage), og da der ikke er brugerkonti, kan alle rette alles mål.
+  En træning der blev startet ved en fejl kan fortrydes — så tæller den ikke med i streaken.
 
 ## Teknik
 

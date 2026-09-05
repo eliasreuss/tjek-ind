@@ -350,6 +350,11 @@
   transform: scale(0.99);
 }
 
+.ghost-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* ── Avatar ──────────────────────────────────────────────────────────────── */
 
 .avatar {

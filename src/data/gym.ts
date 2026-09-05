@@ -171,6 +171,27 @@ export async function expireSession(sessionId: string) {
   await updateDoc(doc(sessions, sessionId), { active: false })
 }
 
+/** Drops the most recent session for a member, active or finished. */
+export async function deleteLatestSession(memberId: string) {
+  const snap = await getDocs(query(sessions, where('memberId', '==', memberId)))
+  if (snap.empty) return
+  const latest = snap.docs.reduce((best, d) =>
+    Number(d.data().startAt ?? 0) > Number(best.data().startAt ?? 0) ? d : best,
+  )
+  await deleteDoc(latest.ref)
+}
+
+/** Wipes a member's training log so their streak starts over. */
+export async function deleteMemberSessions(memberId: string) {
+  const snap = await getDocs(query(sessions, where('memberId', '==', memberId)))
+  if (snap.empty) return
+  for (let i = 0; i < snap.docs.length; i += 400) {
+    const batch = writeBatch(db)
+    snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref))
+    await batch.commit()
+  }
+}
+
 /** Escape hatch for when someone leaves without checking out. */
 export async function stopAllSessions() {
   const snap = await getDocs(query(sessions, where('active', '==', true)))
