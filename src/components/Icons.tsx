@@ -26,6 +26,18 @@ export const ChevronLeft = ({ size = DEFAULT_SIZE }: IconProps) => (
   </svg>
 )
 
+export const ChevronRight = ({ size = DEFAULT_SIZE }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+)
+
+export const ChevronDown = ({ size = DEFAULT_SIZE }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+)
+
 export const Gear = ({ size = DEFAULT_SIZE }: IconProps) => (
   <svg {...base(size)}>
     <circle cx="12" cy="12" r="3" />
@@ -54,6 +66,14 @@ export const Close = ({ size = DEFAULT_SIZE }: IconProps) => (
 export const Flame = ({ size = DEFAULT_SIZE, filled = false }: IconProps & { filled?: boolean }) => (
   <svg {...base(size)} fill={filled ? 'currentColor' : 'none'} stroke={filled ? 'none' : 'currentColor'}>
     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </svg>
+)
+
+export const Users = ({ size = DEFAULT_SIZE }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
+    <circle cx="10" cy="8" r="3.2" />
+    <path d="M17 4.3a3.2 3.2 0 0 1 0 6.2M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35" />
   </svg>
 )
 

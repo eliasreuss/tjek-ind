@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Avatar } from '../components/Avatar'
 import { GuestStepper } from '../components/GuestStepper'
 import { ChevronLeft } from '../components/Icons'
 import { TimeDial } from '../components/TimeDial'
 import { useGym } from '../hooks/gymContext'
+import { myLiveBooking } from '../lib/booking'
 import { thud } from '../lib/haptics'
 import { durationParts, formatClock, formatDuration, MINUTE } from '../lib/time'
 import type { Member } from '../data/types'
@@ -21,10 +22,25 @@ type Props = {
 }
 
 export function DialScreen({ member, onBack, onStarted }: Props) {
-  const { start, now } = useGym()
+  const { start, now, bookings } = useGym()
   const [minutes, setMinutes] = useState(60)
   const [guests, setGuests] = useState(0)
   const [pending, setPending] = useState(false)
+  const [touched, setTouched] = useState(false)
+
+  // If you booked the hour you are checking into, the dial opens on the time you
+  // said you'd be done — until you turn it yourself.
+  const bookedUntil = myLiveBooking(bookings, member.id, now)?.endAt ?? null
+  useEffect(() => {
+    if (touched || bookedUntil === null) return
+    const left = Math.round((bookedUntil - Date.now()) / MINUTE / STEP) * STEP
+    setMinutes(Math.min(MAX, Math.max(MIN, left)))
+  }, [bookedUntil, touched])
+
+  const pick = (value: number) => {
+    setTouched(true)
+    setMinutes(value)
+  }
 
   // Firestore applies the write to its local cache instantly, so the UI can move
   // on without waiting for the server to acknowledge it.
@@ -64,6 +80,11 @@ export function DialScreen({ member, onBack, onStarted }: Props) {
             ))}
           </span>
           <span className="readout-sub">Færdig {formatClock(now + minutes * MINUTE)}</span>
+          {bookedUntil !== null && (
+            <span className="readout-sub is-hint">
+              Du har booket til {formatClock(bookedUntil)}
+            </span>
+          )}
         </motion.div>
 
         <motion.div
@@ -77,7 +98,7 @@ export function DialScreen({ member, onBack, onStarted }: Props) {
             max={MAX}
             step={STEP}
             tone="dark"
-            onChange={setMinutes}
+            onChange={pick}
             label="Træningens længde"
           >
             <button className="core core-lime" onClick={begin} disabled={pending}>
@@ -91,7 +112,7 @@ export function DialScreen({ member, onBack, onStarted }: Props) {
             <button
               key={p}
               className={`chip${minutes === p ? ' is-on' : ''}`}
-              onClick={() => setMinutes(p)}
+              onClick={() => pick(p)}
             >
               {formatDuration(p)}
             </button>

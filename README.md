@@ -14,8 +14,19 @@ Alle andre telefoner opdaterer sig selv i samme sekund.
 
 ## Sådan virker det
 
-- **Live status** — forsiden svarer med det samme: enten `Centret er frit` eller det klokkeslæt,
-  hvor det bliver ledigt igen, med et kort per person der træner.
+- **Live status** — forsiden svarer med det samme: enten `Centret er frit`, hvem der træner og
+  hvor længe, eller det klokkeslæt hvor centret bliver ledigt igen.
+- **Kalenderen** — forsiden viser en uge frem, to dage ad gangen, med en rød streg hvor klokken
+  står lige nu. Man booker ved at holde fingeren på starttiden og trække ned til sluttiden, og
+  man kan altid se hvem der har lagt beslag på hvilke timer.
+- **Flere kan have den samme time** — man må gerne booke oven i en anden; centret har plads til
+  mere end én. Kalenderen deler bare kolonnen mellem dem, og bookingen nævner hvem man kommer
+  til at træne sammen med.
+- **Booket er ikke det samme som tjekket ind** — en booking er en aftale, en indtjekning er
+  beviset. Derfor siger hvert felt i kalenderen hvad der faktisk skete: `Booket` (endnu ikke
+  begyndt), `Ikke tjekket ind` (tiden er nu, men ingen er mødt op), `Tjekket ind` eller
+  `Kom ikke`. Er en tid booket uden at nogen har tjekket ind, siger forsiden det lige ud —
+  så man ved, at centret måske står tomt alligevel.
 - **Ingen brugerkonti** — man vælger sit navn fra listen. Valget huskes lokalt på telefonen, så
   næste gang går man direkte til hjulet.
 - **Drejehjulet** — én omgang dækker hele intervallet (15–180 min i spring på 5). Man kan også
@@ -45,14 +56,22 @@ Ren frontend, ingen server at passe på:
 
 ### Datamodel
 
-To collections:
+Tre collections:
 
 | Collection | Felter |
 | --- | --- |
 | `members` | `name`, `createdAt`, `weeklyGoal` — dokument-ID er et slug af navnet, så den samme person aldrig kan oprettes to gange |
 | `sessions` | `memberId`, `memberName`, `startAt`, `endAt`, `active`, `guests` |
+| `bookings` | `memberId`, `memberName`, `startAt`, `endAt`, `createdAt` |
 
-Gæster er kun et tal på sessionen, ikke egne dokumenter — derfor kræver de ingen oprydning.
+`bookings` og `sessions` holdes bevidst adskilt: en booking er en hensigt, en session er en
+indtjekning. Kalenderen parrer dem — en booking, der har en session i samme tidsrum for samme
+person, er honoreret; en der ikke har, er enten `Ikke tjekket ind` eller `Kom ikke`. Kun
+sessioner tæller i streaks, så en booking man ikke mødte op til giver ingen point.
+
+Gæster er kun et tal på sessionen, ikke egne dokumenter — derfor kræver de ingen oprydning. De
+står på selve træningen i kalenderen (`Jonathan +4`) og i detaljerne, så man kan se hvor mange
+kroppe der faktisk var i centret.
 
 Afsluttede sessioner slettes ikke, de får blot `active: false`. Det er dem streaks regnes ud fra:
 appen lytter på det seneste års sessioner og tæller trænings*dage* per uge, så to indtjekninger

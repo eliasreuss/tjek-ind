@@ -16,3 +16,17 @@ export type Session = {
   /** People brought along who have no profile of their own. */
   guests: number
 }
+
+/**
+ * A time someone has claimed in advance. Deliberately not a session: booking is
+ * a promise, checking in is the deed, and the front page is only honest if it
+ * can tell the two apart.
+ */
+export type Booking = {
+  id: string
+  memberId: string
+  memberName: string
+  startAt: number
+  endAt: number
+  createdAt: number
+}

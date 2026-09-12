@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
-import type { Member, Session } from '../data/types'
+import type { Booking, Member, Session } from '../data/types'
+import type { RepeatFrequency } from '../lib/booking'
 import type { Streak } from '../lib/streak'
 
 export type GymValue = {
@@ -9,6 +10,10 @@ export type GymValue = {
   members: Member[]
   /** Sessions that are running right now, soonest to finish first. */
   active: Session[]
+  /** Every check-in the app knows of, running and finished — the calendar's past. */
+  sessions: Session[]
+  /** Times blocked out from yesterday onwards, earliest first. */
+  bookings: Booking[]
   busy: boolean
   /** Bodies in the gym: everyone checked in, plus the guests they brought. */
   peopleTraining: number
@@ -24,6 +29,13 @@ export type GymValue = {
   setGuests: (sessionId: string, guests: number) => Promise<void>
   stop: (sessionId: string) => Promise<void>
   stopAll: () => Promise<void>
+  book: (
+    member: Member,
+    startAt: number,
+    endAt: number,
+    repeat?: RepeatFrequency | null,
+  ) => Promise<void>
+  unbook: (bookingId: string) => Promise<void>
   addMember: (name: string) => Promise<void>
   removeMember: (id: string) => Promise<void>
   setGoal: (memberId: string, goal: number) => Promise<void>

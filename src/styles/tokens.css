@@ -15,6 +15,11 @@
   --muted: #8b9080;
   --muted-2: #b7bbac;
 
+  /* Booked but nobody checked in — the one state the app has to nag about. */
+  --warn: #c2690f;
+  /* The calendar's "you are here" line. */
+  --now: #e5484d;
+
   /* Radii — generously round, pills for anything interactive. */
   --r-card: 34px;
   --r-md: 24px;

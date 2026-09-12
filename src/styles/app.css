@@ -22,6 +22,15 @@
   background: var(--white);
 }
 
+/**
+ * Home is an app shell rather than a page: the height is pinned so the calendar
+ * inside it is the only thing that scrolls. Without a definite height here, a
+ * scrolling child just makes the whole document taller.
+ */
+.screen.is-fixed {
+  height: 100dvh;
+}
+
 @media (min-width: 560px) {
   .app {
     background: #26291f;
@@ -35,6 +44,10 @@
     overflow: hidden;
     box-shadow: var(--shadow-float);
     isolation: isolate;
+  }
+
+  .screen.is-fixed {
+    height: calc(100dvh - 56px);
   }
 }
 
@@ -84,10 +97,19 @@
   background: var(--paper);
   font-size: 15px;
   font-weight: 600;
+  transition: transform 0.18s var(--ease-spring);
+}
+
+.who:active {
+  transform: scale(0.96);
 }
 
 .who.is-static {
   cursor: default;
+}
+
+.who.is-static:active {
+  transform: none;
 }
 
 /* ── Type ────────────────────────────────────────────────────────────────── */
@@ -113,155 +135,349 @@
 
 /* ── Home ────────────────────────────────────────────────────────────────── */
 
+.home-bar {
+  justify-content: space-between;
+  padding-bottom: 4px;
+}
+
+/* Nobody picked yet: no avatar to show, so the pill is just the question. */
+.who.is-empty {
+  padding: 7px 18px;
+  color: var(--muted);
+}
+
 .home-body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 26px;
-  padding: calc(var(--safe-top) + 58px) var(--gutter) 8px;
+  min-height: 0;
+  gap: 16px;
+  padding: 4px var(--gutter) 6px;
 }
 
-.stack {
+/* Booked, but nobody has checked in — worth more than muted grey. */
+.lede.is-warn {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.cal-wrap {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
-.person {
-  position: relative;
-  /* Overlapping avatars ring themselves in the card's own colour to separate. */
-  --card: var(--white);
-  padding: 20px 22px 20px;
-  border-radius: var(--r-card);
-  background: var(--card);
+.cal-hint {
+  flex: none;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted-2);
+}
+
+/* ── Calendar ────────────────────────────────────────────────────────────── */
+
+.cal {
+  --cal-gutter: 40px;
+  flex: 1;
+  min-height: 200px;
+  /* Scrolls in both directions: hours down, days across. */
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  /* A day snaps flush with the hour column, not underneath it. */
+  scroll-padding-left: var(--cal-gutter);
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  /* Day columns size themselves off the card, not the viewport. */
+  container-type: inline-size;
 }
 
-.person-stack {
+.cal-inner {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Hour labels stay put while the days slide past. */
+.cal-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  flex: none;
+  width: var(--cal-gutter);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+
+.cal-gutter-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: none;
+  height: var(--cal-head);
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.cal-hour {
+  flex: none;
+  height: var(--cal-row);
+  padding-right: 7px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-2);
+}
+
+.cal-days {
+  position: relative;
   flex: none;
   display: flex;
-  align-items: center;
 }
 
-.person-stack > * {
-  box-shadow: 0 0 0 3px var(--card);
-}
-
-.person-stack > * + * {
-  margin-left: -12px;
-}
-
-.guest-av {
+.cal-col {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--white);
+  /* Two days at a time, however wide the phone is. */
+  width: max(128px, calc((100cqw - var(--cal-gutter) - 1px) / 2));
+  max-width: 220px;
+  border-left: 1px solid var(--line);
+  scroll-snap-align: start;
+}
+
+.cal-col-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: block;
+  height: var(--cal-head);
+  padding-top: 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  text-align: center;
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 700;
-  line-height: 1;
-}
-
-.person-top {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  margin-bottom: 20px;
-}
-
-.person-streak {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.person-streak svg {
-  color: var(--lime-deep);
-}
-
-/* A pill, not a circle: "1t 25m" stays on one line at any length. */
-.person-badge {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  flex: none;
-  padding: 10px 17px;
-  border-radius: var(--r-pill);
-  background: var(--lime);
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.person-badge em {
-  font-style: normal;
-  font-size: 0.72em;
-  font-weight: 600;
-  opacity: 0.6;
-}
-
-.person-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 23px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.person-foot {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 13px;
-}
-
-/* Stays hard right whether or not there's a streak to its left. */
-.person-meta {
-  margin-left: auto;
-  font-size: 15px;
+  letter-spacing: -0.02em;
   color: var(--muted);
 }
 
-.person-bar {
-  height: 6px;
-  border-radius: var(--r-pill);
+.cal-col.is-today .cal-col-head {
+  color: var(--ink);
+}
+
+.cal-col-body {
+  position: relative;
+  height: calc(var(--cal-row) * var(--cal-rows));
+  background: var(--white);
+  /* Scrolling stays the browser's job in both directions — hours down, days
+     across. A drag that has armed stops it by calling preventDefault instead,
+     which is the only thing that works once a touch is already under way. */
+  user-select: none;
+}
+
+.cal-col-body.is-dragging {
+  cursor: ns-resize;
+}
+
+.cal-hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--cal-row);
+  border-top: 1px solid var(--line);
+  pointer-events: none;
+}
+
+.cal-hour-line:first-child {
+  border-top: none;
+}
+
+/* Hours already gone can't be booked, and shouldn't look like they can. */
+.cal-past {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
   background: var(--paper);
+  pointer-events: none;
+}
+
+/* The block being dragged out, before it's handed off to the edit sheet. */
+.cal-draft {
+  position: absolute;
+  z-index: 2;
+  left: 2px;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: rgba(199, 241, 52, 0.4);
+  box-shadow: inset 0 0 0 2px var(--lime-deep);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.cal-block {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-left: 3px;
+  padding: 5px 8px;
   overflow: hidden;
+  border-radius: 13px;
+  background: var(--tint);
+  color: var(--ink);
+  text-align: left;
+  transition: transform 0.16s var(--ease-out);
+  /* Its own height is the query, so a half-hour block can drop what won't fit. */
+  container-type: size;
 }
 
-.person-bar i {
-  display: block;
-  height: 100%;
-  border-radius: var(--r-pill);
-  background: var(--ink);
-  transition: width 0.6s linear;
+/* Nothing gives way: the block clips from the bottom instead of squashing the
+   lines into each other. */
+.cal-block > * {
+  flex: none;
 }
 
-.idle {
-  flex: 1;
-  display: grid;
-  place-items: center;
-  padding-bottom: 24px;
+.cal-block:active {
+  transform: scale(0.97);
 }
 
-.idle-art {
-  display: block;
-  width: min(290px, 68vw);
-  height: auto;
+.cal-block-time {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-block-name {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.72;
+}
+
+.cal-block-name em {
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* The line that says whether the booking was honoured. */
+.cal-block-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Too short for three lines — under three quarters of an hour — so the name
+   goes and the verdict stays. */
+@container (max-height: 40px) {
+  .cal-block-name {
+    display: none;
+  }
+}
+
+.cal-block-tag i {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Still to come: a filled slab, nothing to report yet. */
+.cal-block.is-planned .cal-block-tag {
+  opacity: 0.62;
+}
+
+.cal-block.is-planned .cal-block-tag i {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+/* Checked in and training: ringed in ink, with a beating dot. */
+.cal-block.is-active {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.cal-block.is-active .cal-block-tag i {
+  animation: beat 1.8s ease-in-out infinite;
+}
+
+/* Booked right now, nobody checked in: hollow, dashed, and warned. */
+.cal-block.is-waiting {
+  background: color-mix(in srgb, var(--tint) 24%, var(--white));
+  box-shadow: inset 0 0 0 2px var(--warn);
+  border-radius: 13px;
+}
+
+.cal-block.is-waiting .cal-block-tag {
+  color: var(--warn);
+}
+
+.cal-block.is-attended {
+  opacity: 0.55;
+}
+
+/* Booked and never used — an outline where a training should have been. */
+.cal-block.is-missed {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--muted-2);
+  color: var(--muted);
+}
+
+@keyframes beat {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* "You are here", straight across every day on screen. */
+.cal-now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  height: 0;
+  border-top: 2px dotted var(--now);
+  pointer-events: none;
+}
+
+.cal-now i {
+  position: absolute;
+  top: -5px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--now);
 }
 
 /* ── Dock / primary action ───────────────────────────────────────────────── */
@@ -274,11 +490,6 @@
   gap: 12px;
   padding: 18px var(--gutter) calc(var(--safe-bottom) + 20px);
   background: linear-gradient(to top, var(--white) 66%, rgba(255, 255, 255, 0));
-}
-
-.dock .icon-btn {
-  width: 68px;
-  height: 68px;
 }
 
 .cta {
@@ -301,6 +512,16 @@
 
 .cta:active {
   transform: scale(0.978);
+}
+
+/* Nothing to press: a taken time has to look shut, not merely say so. */
+.cta:disabled {
+  background: var(--paper);
+  color: var(--muted);
+}
+
+.cta:disabled:active {
+  transform: none;
 }
 
 /* Takes the leftover room so the label centres in the space beside the orb. */
@@ -329,6 +550,7 @@
 .cta-block {
   width: 100%;
   height: 60px;
+  margin-top: 28px;
   padding: 0 26px;
   justify-content: center;
 }
@@ -720,6 +942,14 @@
   gap: 8px;
 }
 
+/* Longer labels — like the repeat options — wrap onto a second line instead
+   of shrinking past readability. */
+.chips.is-wrap {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 10px;
+}
+
 .chip {
   /* Padding gives way on narrow phones so all four presets stay on one row. */
   padding: 12px clamp(11px, 4.2vw, 19px);
@@ -742,6 +972,11 @@
   background: var(--lime);
   border-color: var(--lime);
   color: var(--ink);
+}
+
+.chip:disabled {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 /* ── Guest stepper ───────────────────────────────────────────────────────── */
@@ -1111,6 +1346,262 @@
 
 .pips i.is-done {
   background: var(--lime-deep);
+}
+
+/* ── Booking ─────────────────────────────────────────────────────────────── */
+
+.sheet-note.is-warn {
+  color: var(--warn);
+  font-weight: 500;
+}
+
+.readout-sub.is-hint {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--muted-2);
+}
+
+/* The person picker: a pill that opens a short dropdown, not a whole row of
+   chips — most bookings are for whoever is holding the phone. */
+.person-picker {
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.person-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 6px;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.person-trigger svg {
+  color: var(--muted-2);
+}
+
+/* Invisible, full-screen: taps anywhere else close the dropdown, the way a
+   native picker does. */
+.who-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+}
+
+.person-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  min-width: 200px;
+  max-height: 260px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 6px;
+  border-radius: var(--r-md);
+  background: var(--white);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+}
+
+.person-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-sm);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.person-menu-item:active {
+  background: var(--paper);
+}
+
+.person-menu-item.is-on {
+  background: var(--lime);
+}
+
+/* Start and end, side by side with an arrow between. */
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted-2);
+}
+
+/* A plain native picker — the wheel on a phone, a list on a desktop — with our
+   own chevron, since the browser's sits too far from the text. */
+.select-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border-radius: var(--r-md);
+  background: var(--paper);
+}
+
+.select-field select {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  padding: 16px 42px 16px 16px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.select-field select:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.select-field > svg {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--muted-2);
+}
+
+.select-field.is-wide select {
+  font-size: 17px;
+}
+
+/* Each section of the sheet — day, time, repeat — stands on its own, with the
+   label close to the control it names and air above it. */
+.field-label {
+  margin: 26px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.book-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 24px 2px 0;
+}
+
+/* Who else has the same hour — a remark, not a warning. */
+.book-also {
+  margin-top: 22px;
+}
+
+.book-summary strong {
+  font-family: var(--font-display);
+  font-size: 23px;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-summary span {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Guests don't exist anywhere else in the app, so say plainly how many turned
+   up on someone else's booking. */
+.book-guests {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: -4px 0 16px;
+  padding: 11px 14px;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.book-guests svg {
+  flex: none;
+  color: var(--muted-2);
+}
+
+.book-guests em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Booked or actually here? The sheet leads with the answer. */
+.book-status {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  background: var(--paper);
+}
+
+.book-status-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.book-status-top i {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.book-status strong {
+  font-family: var(--font-display);
+  font-size: 26px;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-status-day {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.book-status.is-active {
+  background: var(--lime);
+}
+
+.book-status.is-active .book-status-top,
+.book-status.is-attended .book-status-top {
+  color: var(--ink);
+}
+
+.book-status.is-waiting {
+  background: color-mix(in srgb, var(--warn) 11%, var(--white));
+}
+
+.book-status.is-waiting .book-status-top {
+  color: var(--warn);
+}
+
+.book-status.is-planned .book-status-top i,
+.book-status.is-missed .book-status-top i {
+  background: none;
+  box-shadow: inset 0 0 0 2px currentColor;
 }
 
 /* ── Toast & errors ──────────────────────────────────────────────────────── */

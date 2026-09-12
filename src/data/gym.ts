@@ -15,11 +15,13 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+import { repeatDates, type RepeatFrequency } from '../lib/booking'
 import { DEFAULT_WEEKLY_GOAL, MAX_WEEKLY_GOAL, MIN_WEEKLY_GOAL } from '../lib/streak'
-import type { Member, Session } from './types'
+import type { Booking, Member, Session } from './types'
 
 const members = collection(db, 'members')
 const sessions = collection(db, 'sessions')
+const bookings = collection(db, 'bookings')
 
 /** Seeded once into an empty database — edit the roster in the app's admin panel. */
 const STARTER_ROSTER = ['Elias', 'Adrian', 'Jacob', 'Marius']
@@ -86,6 +88,80 @@ export function watchSessionsSince(
   )
 }
 
+function toBooking(d: QueryDocumentSnapshot<DocumentData>): Booking {
+  const data = d.data()
+  return {
+    id: d.id,
+    memberId: String(data.memberId ?? ''),
+    memberName: String(data.memberName ?? ''),
+    startAt: Number(data.startAt ?? 0),
+    endAt: Number(data.endAt ?? 0),
+    createdAt: Number(data.createdAt ?? 0),
+  }
+}
+
+/**
+ * Everything from `since` and onwards, the future included — the calendar needs
+ * both the times already blocked out today and the ones still to come.
+ */
+export function watchBookingsSince(
+  since: number,
+  onChange: (list: Booking[]) => void,
+  onError: (e: Error) => void,
+) {
+  return onSnapshot(
+    query(bookings, where('startAt', '>=', since)),
+    (snap) => {
+      const list = snap.docs.map(toBooking)
+      list.sort((a, b) => a.startAt - b.startAt)
+      onChange(list)
+    },
+    onError,
+  )
+}
+
+/**
+ * A single booking, or — with `repeat` set — the same slot laid down again on
+ * a schedule. Every occurrence is its own independent document; there is no
+ * series to speak of, so deleting one never touches the others.
+ */
+export async function addBooking(
+  member: Member,
+  startAt: number,
+  endAt: number,
+  repeat: RepeatFrequency | null = null,
+) {
+  if (endAt <= startAt) return
+  const occurrences = repeat ? repeatDates(startAt, endAt, repeat) : [{ startAt, endAt }]
+  const createdAt = Date.now()
+  const batch = writeBatch(db)
+  for (const o of occurrences) {
+    batch.set(doc(bookings), {
+      memberId: member.id,
+      memberName: member.name,
+      startAt: o.startAt,
+      endAt: o.endAt,
+      createdAt,
+    })
+  }
+  await batch.commit()
+}
+
+export async function removeBooking(id: string) {
+  await deleteDoc(doc(bookings, id))
+}
+
+/** Keeps the calendar free of times claimed by someone who is no longer on the roster. */
+async function deleteMemberBookings(memberId: string) {
+  const snap = await getDocs(query(bookings, where('memberId', '==', memberId)))
+  if (snap.empty) return
+  for (let i = 0; i < snap.docs.length; i += 400) {
+    const batch = writeBatch(db)
+    snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref))
+    await batch.commit()
+  }
+}
+
 /**
  * Document IDs are derived from the name so that a member can only ever exist
  * once, even if two phones seed or add at the same moment.
@@ -130,6 +206,9 @@ export async function addMember(name: string) {
 
 export async function removeMember(id: string) {
   await deleteDoc(doc(members, id))
+  // Their sessions stay — the log is history — but their bookings are a claim
+  // on time nobody is going to use.
+  await deleteMemberBookings(id)
 }
 
 /** No accounts means no ownership: any phone can retune anyone's goal. */

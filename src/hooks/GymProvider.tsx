@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as gym from '../data/gym'
-import type { Member, Session } from '../data/types'
+import type { Booking, Member, Session } from '../data/types'
 import {
   computeStreak,
   HISTORY_WEEKS,
@@ -8,6 +8,7 @@ import {
   startOfWeek,
   type Streak,
 } from '../lib/streak'
+import { addDays, startOfDay } from '../lib/time'
 import { GymContext, type GymValue } from './gymContext'
 import { useNow } from './useNow'
 
@@ -18,6 +19,7 @@ export function GymProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<Member[]>([])
   const [rawSessions, setRawSessions] = useState<Session[]>([])
   const [history, setHistory] = useState<Session[]>([])
+  const [bookings, setBookings] = useState<Booking[]>([])
   const [loaded, setLoaded] = useState({ members: false, sessions: false })
   const [gaveUp, setGaveUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,8 +55,23 @@ export function GymProvider({ children }: { children: ReactNode }) {
     return gym.watchSessionsSince(since, setHistory, (e) => setError(e.message))
   }, [])
 
+  // Yesterday is included so a booking that ran past midnight still has a row
+  // to sit in; the calendar itself decides which days to draw.
+  useEffect(() => {
+    const since = addDays(startOfDay(Date.now()), -1)
+    return gym.watchBookingsSince(since, setBookings, (e) => setError(e.message))
+  }, [])
+
   // A session is over once its clock runs out, whether or not anyone pressed stop.
   const active = useMemo(() => rawSessions.filter((s) => s.endAt > now), [rawSessions, now])
+
+  // The live listener is the fresher of the two, so it wins on conflict; the
+  // history listener adds everything that has already finished.
+  const sessions = useMemo(() => {
+    const byId = new Map(history.map((s) => [s.id, s]))
+    for (const s of rawSessions) byId.set(s.id, s)
+    return [...byId.values()]
+  }, [history, rawSessions])
 
   useEffect(() => {
     for (const s of rawSessions) {
@@ -116,6 +133,8 @@ export function GymProvider({ children }: { children: ReactNode }) {
     error: error ?? (gaveUp && !loaded.members ? 'offline' : null),
     members,
     active,
+    sessions,
+    bookings,
     busy: active.length > 0,
     peopleTraining: active.reduce((n, s) => n + 1 + s.guests, 0),
     freeAt: active.length > 0 ? Math.max(...active.map((s) => s.endAt)) : null,
@@ -132,6 +151,8 @@ export function GymProvider({ children }: { children: ReactNode }) {
     setGuests: report(gym.setSessionGuests),
     stop: report(gym.stopSession),
     stopAll: report(gym.stopAllSessions),
+    book: report(gym.addBooking),
+    unbook: report(gym.removeBooking),
     addMember: report(gym.addMember),
     removeMember: report(gym.removeMember),
     setGoal: report(gym.setMemberGoal),

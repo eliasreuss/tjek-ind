@@ -1,20 +1,20 @@
 import { motion } from 'framer-motion'
 import { Avatar } from '../components/Avatar'
-import { ArrowRight, Flame, Gear } from '../components/Icons'
+import { ArrowRight, Gear } from '../components/Icons'
+import { WeekCalendar } from '../components/WeekCalendar'
+import type { Booking, Session } from '../data/types'
 import { useGym } from '../hooks/gymContext'
-import { formatWeeks, type Streak } from '../lib/streak'
-import { durationParts, formatClock, MINUTE } from '../lib/time'
-import type { Session } from '../data/types'
+import { liveBookings, nextBooking, type CalendarItem } from '../lib/booking'
+import { formatClock, formatDayWord } from '../lib/time'
 
 type Props = {
   onStart: () => void
   onOpenSession: () => void
   onOpenAdmin: () => void
+  onOpenPicker: () => void
+  onCreateRange: (startAt: number, endAt: number) => void
+  onOpenItem: (item: CalendarItem) => void
 }
-
-// Lives in public/, so it needs Vite's base path prepended to survive the
-// /<repo>/ subdirectory on GitHub Pages.
-const illustration = `${import.meta.env.BASE_URL}illustration.png`
 
 const rise = {
   hidden: { opacity: 0, y: 18 },
@@ -25,134 +25,144 @@ const rise = {
   }),
 }
 
-function PersonCard({
-  session,
-  now,
-  streak,
-}: {
-  session: Session
-  now: number
-  streak?: Streak
-}) {
-  const left = Math.max(0, session.endAt - now)
-  const total = Math.max(1, session.endAt - session.startAt)
-  const done = Math.min(100, Math.max(0, (1 - left / total) * 100))
-  const parts = durationParts(Math.ceil(left / MINUTE))
-  // Beyond three guests the row of identical circles stops being readable, so
-  // the tail collapses into a count.
-  const shownGuests = session.guests > 3 ? 2 : session.guests
-  const restGuests = session.guests - shownGuests
-
-  return (
-    <article className="person">
-      <div className="person-top">
-        <span className="person-stack">
-          <Avatar name={session.memberName} size={44} />
-          {Array.from({ length: shownGuests }, (_, i) => (
-            <span key={i} className="guest-av" aria-hidden="true">
-              G
-            </span>
-          ))}
-          {restGuests > 0 && (
-            <span className="guest-av" aria-hidden="true">
-              +{restGuests}
-            </span>
-          )}
-        </span>
-
-        <h2 className="person-name">{session.memberName}</h2>
-
-        <span className="person-badge">
-          {parts.map((p) => (
-            <span key={p.unit}>
-              {p.value}
-              <em>{p.unit}</em>
-            </span>
-          ))}
-        </span>
-      </div>
-
-      <div className="person-bar">
-        <i style={{ width: `${done}%` }} />
-      </div>
-
-      {/* The streak sits down here rather than beside the name, so a long name
-          gets the whole top line to itself. */}
-      <div className="person-foot">
-        {streak && streak.weeks > 0 && (
-          <span className="person-streak" aria-label={`${formatWeeks(streak.weeks)} i træk`}>
-            {streak.weeks}
-            <Flame size={17} filled />
-          </span>
-        )}
-        <p className="person-meta">
-          Slutter {formatClock(session.endAt)}
-          {session.guests > 0 &&
-            ` · ${session.guests} ${session.guests === 1 ? 'gæst' : 'gæster'}`}
-        </p>
-      </div>
-    </article>
-  )
+/** "Jonathan Nielsen" → "Jonathan", so the headline stays one line. */
+function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || name
 }
 
-export function HomeScreen({ onStart, onOpenSession, onOpenAdmin }: Props) {
-  const { busy, active, freeAt, now, mySession, peopleTraining, ready, streaks } = useGym()
-  const soloWithoutGuests = active.length === 1 && active[0].guests === 0
+function listNames(bookings: Booking[]): string {
+  const names = bookings.map((b) => firstName(b.memberName))
+  if (names.length === 1) return names[0]
+  return `${names.slice(0, -1).join(', ')} og ${names[names.length - 1]}`
+}
+
+type Status = {
+  headline: string
+  lede: string
+  /** The nag: booked time with nobody checked in, said in its own words. */
+  warn: string | null
+}
+
+/**
+ * The front page has to answer two questions at once now: is the gym taken, and
+ * is anyone actually in it? A booked hour with nobody checked in is the case
+ * that used to be invisible, so it gets said out loud.
+ */
+function statusOf(
+  active: Session[],
+  bookings: Booking[],
+  peopleTraining: number,
+  freeAt: number | null,
+  now: number,
+): Status {
+  const live = liveBookings(bookings, now)
+  const absent = live.filter((b) => !active.some((s) => s.memberId === b.memberId))
+
+  const nag =
+    absent.length > 0 ? `${listNames(absent)} har booket uden at tjekke ind` : null
+
+  if (active.length > 0) {
+    const solo = active.length === 1 && active[0].guests === 0
+    return {
+      headline: solo
+        ? `${firstName(active[0].memberName)} træner indtil ${formatClock(active[0].endAt)}`
+        : `Ledigt kl. ${formatClock(freeAt ?? now)}`,
+      lede: solo
+        ? `Tjekket ind kl. ${formatClock(active[0].startAt)}`
+        : `${peopleTraining} træner lige nu`,
+      warn: nag,
+    }
+  }
+
+  if (absent.length > 0) {
+    const until = Math.max(...absent.map((b) => b.endAt))
+    return {
+      headline:
+        absent.length === 1
+          ? `${firstName(absent[0].memberName)} har booket til ${formatClock(until)}`
+          : `Booket til ${formatClock(until)}`,
+      lede: '',
+      warn: 'Ingen har tjekket ind — centret står måske tomt',
+    }
+  }
+
+  const next = nextBooking(bookings, now)
+  return {
+    headline: 'Centret er frit',
+    lede: next
+      ? `Næste: ${firstName(next.memberName)} ${formatDayWord(next.startAt, now)} kl. ${formatClock(next.startAt)}`
+      : 'Ingen har tjekket ind',
+    warn: null,
+  }
+}
+
+export function HomeScreen({
+  onStart,
+  onOpenSession,
+  onOpenAdmin,
+  onOpenPicker,
+  onCreateRange,
+  onOpenItem,
+}: Props) {
+  const { active, bookings, freeAt, me, mySession, now, peopleTraining, ready, sessions } = useGym()
+  const status = statusOf(active, bookings, peopleTraining, freeAt, now)
 
   return (
-    <div className="screen">
+    <div className="screen is-fixed">
+      <header className="topbar home-bar">
+        {/* The same pill as on the træning screens, so it reads as "this is
+            you" in both places — here it opens the switcher. */}
+        <button
+          className={`who${me ? '' : ' is-empty'}`}
+          onClick={onOpenPicker}
+          aria-label={me ? `Skift bruger fra ${me.name}` : 'Vælg hvem du er'}
+        >
+          {me ? (
+            <>
+              <Avatar name={me.name} size={30} />
+              {me.name}
+            </>
+          ) : (
+            'Hvem er du?'
+          )}
+        </button>
+        <button className="icon-btn" onClick={onOpenAdmin} aria-label="Administration">
+          <Gear size={22} />
+        </button>
+      </header>
+
       <main className="home-body">
-        {!ready ? (
-          <h1 className="headline is-muted">Henter…</h1>
-        ) : busy ? (
-          <>
-            <motion.div variants={rise} initial="hidden" animate="show" custom={0}>
-              <h1 className="headline">Ledigt kl. {formatClock(freeAt ?? now)}</h1>
-              <p className="lede">
-                {soloWithoutGuests
-                  ? `${active[0].memberName} træner lige nu`
-                  : `${peopleTraining} træner lige nu`}
-              </p>
-            </motion.div>
+        <motion.div variants={rise} initial="hidden" animate="show" custom={0}>
+          {!ready ? (
+            <h1 className="headline is-muted">Henter…</h1>
+          ) : (
+            <>
+              <h1 className="headline">{status.headline}</h1>
+              {status.lede && <p className="lede">{status.lede}</p>}
+              {status.warn && <p className="lede is-warn">{status.warn}</p>}
+            </>
+          )}
+        </motion.div>
 
-            <div className="stack">
-              {active.map((s, i) => (
-                <motion.div
-                  key={s.id}
-                  variants={rise}
-                  initial="hidden"
-                  animate="show"
-                  custom={i + 1}
-                >
-                  <PersonCard session={s} now={now} streak={streaks[s.memberId]} />
-                </motion.div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <>
-            <motion.div variants={rise} initial="hidden" animate="show" custom={0}>
-              <h1 className="headline">Centret er frit</h1>
-              <p className="lede">Ingen har tjekket ind</p>
-            </motion.div>
-
-            <motion.div
-              className="idle"
-              variants={rise}
-              initial="hidden"
-              animate="show"
-              custom={1}
-            >
-              <img className="idle-art" src={illustration} alt="" aria-hidden="true" />
-            </motion.div>
-          </>
-        )}
+        <motion.div
+          className="cal-wrap"
+          variants={rise}
+          initial="hidden"
+          animate="show"
+          custom={1}
+        >
+          <WeekCalendar
+            bookings={bookings}
+            sessions={sessions}
+            now={now}
+            onCreateRange={onCreateRange}
+            onPickItem={onOpenItem}
+          />
+          <p className="cal-hint">Hold og træk for at booke</p>
+        </motion.div>
       </main>
 
       <footer className="dock">
-        <button className="icon-btn" onClick={onOpenAdmin} aria-label="Administration">
-          <Gear size={26} />
-        </button>
         {mySession ? (
           <button className="cta" onClick={onOpenSession}>
             <span className="cta-label">Afslut træning</span>

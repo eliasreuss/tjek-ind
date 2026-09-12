@@ -9,9 +9,12 @@ type Props = {
   onPick: (member: Member) => void
   onEditGoal: (member: Member) => void
   onBack: () => void
+  /** Starting a training can't collide with one already running; just
+   * claiming to be someone on this phone has no such conflict. */
+  lockBusy?: boolean
 }
 
-export function PickMemberScreen({ onPick, onEditGoal, onBack }: Props) {
+export function PickMemberScreen({ onPick, onEditGoal, onBack, lockBusy = true }: Props) {
   const { members, active, ready, streaks } = useGym()
   const training = new Set(active.map((s) => s.memberId))
 
@@ -32,7 +35,7 @@ export function PickMemberScreen({ onPick, onEditGoal, onBack }: Props) {
             Array.from({ length: 4 }, (_, i) => <span key={i} className="pick-skeleton" />)}
 
           {members.map((m, i) => {
-            const busy = training.has(m.id)
+            const busy = lockBusy && training.has(m.id)
             const streak = streaks[m.id]
 
             return (

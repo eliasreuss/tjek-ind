@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AdminSheet } from './screens/AdminSheet'
 import { ActiveScreen } from './screens/ActiveScreen'
+import { BookingSheet } from './screens/BookingSheet'
 import { DialScreen } from './screens/DialScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { GoalSheet } from './screens/GoalSheet'
+import { NewBookingSheet } from './screens/NewBookingSheet'
 import { PickMemberScreen } from './screens/PickMemberScreen'
 import { GymProvider } from './hooks/GymProvider'
 import { useGym } from './hooks/gymContext'
+import type { CalendarItem } from './lib/booking'
 import type { Member } from './data/types'
 import './styles/tokens.css'
 import './styles/app.css'
@@ -21,12 +24,20 @@ const slide = {
   transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const },
 }
 
+/** Why the "Hvem er du?" screen was opened, so picking a name knows what to do next. */
+type PickIntent = 'start' | 'switch'
+
 function Shell() {
-  const { me, mySession, error } = useGym()
+  const { me, mySession, error, setMe } = useGym()
   const [route, setRoute] = useState<Route>('home')
   const [picked, setPicked] = useState<Member | null>(null)
+  const [pickIntent, setPickIntent] = useState<PickIntent>('start')
   const [adminOpen, setAdminOpen] = useState(false)
   const [goalFor, setGoalFor] = useState<Member | null>(null)
+  const [pendingRange, setPendingRange] = useState<{ startAt: number; endAt: number } | null>(
+    null,
+  )
+  const [openItem, setOpenItem] = useState<CalendarItem | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
@@ -45,8 +56,16 @@ function Shell() {
       setPicked(me)
       setRoute('dial')
     } else {
+      setPickIntent('start')
       setRoute('pick')
     }
+  }
+
+  // The home pill opens the very same list, just to swap identities rather
+  // than to start a training.
+  const openSwitcher = () => {
+    setPickIntent('switch')
+    setRoute('pick')
   }
 
   return (
@@ -58,6 +77,9 @@ function Shell() {
               onStart={beginFlow}
               onOpenSession={() => setRoute('active')}
               onOpenAdmin={() => setAdminOpen(true)}
+              onOpenPicker={openSwitcher}
+              onCreateRange={(startAt, endAt) => setPendingRange({ startAt, endAt })}
+              onOpenItem={setOpenItem}
             />
           </motion.div>
         )}
@@ -67,9 +89,15 @@ function Shell() {
             <PickMemberScreen
               onBack={() => setRoute('home')}
               onEditGoal={setGoalFor}
+              lockBusy={pickIntent === 'start'}
               onPick={(m) => {
-                setPicked(m)
-                setRoute('dial')
+                if (pickIntent === 'switch') {
+                  setMe(m.id)
+                  setRoute('home')
+                } else {
+                  setPicked(m)
+                  setRoute('dial')
+                }
               }}
             />
           </motion.div>
@@ -103,6 +131,12 @@ function Shell() {
       </AnimatePresence>
 
       <GoalSheet member={goalFor} onClose={() => setGoalFor(null)} />
+      <NewBookingSheet
+        range={pendingRange}
+        onClose={() => setPendingRange(null)}
+        onBooked={setToast}
+      />
+      <BookingSheet item={openItem} onClose={() => setOpenItem(null)} onCheckedIn={setToast} />
       <AdminSheet open={adminOpen} onClose={() => setAdminOpen(false)} />
 
       <AnimatePresence>
