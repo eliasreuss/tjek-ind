@@ -153,6 +153,7 @@ export function GymProvider({ children }: { children: ReactNode }) {
     stopAll: report(gym.stopAllSessions),
     book: report(gym.addBooking),
     unbook: report(gym.removeBooking),
+    unbookMany: report(gym.removeBookings),
     addMember: report(gym.addMember),
     removeMember: report(gym.removeMember),
     setGoal: report(gym.setMemberGoal),

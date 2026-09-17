@@ -36,6 +36,8 @@ export type GymValue = {
     repeat?: RepeatFrequency | null,
   ) => Promise<void>
   unbook: (bookingId: string) => Promise<void>
+  /** Calls off several bookings in one write, e.g. every occurrence of a repeat. */
+  unbookMany: (bookingIds: string[]) => Promise<void>
   addMember: (name: string) => Promise<void>
   removeMember: (id: string) => Promise<void>
   setGoal: (memberId: string, goal: number) => Promise<void>

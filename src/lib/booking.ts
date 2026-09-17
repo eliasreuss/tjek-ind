@@ -41,6 +41,68 @@ export function repeatDates(
   }))
 }
 
+/**
+ * What marks two bookings as occurrences of the same repeat. Bookings written
+ * before `seriesId` existed fall back to the moment they were laid down, which
+ * every occurrence of one batch shares.
+ */
+function seriesKey(booking: Booking): string {
+  return booking.seriesId ?? `${booking.memberId}:${booking.createdAt}`
+}
+
+/**
+ * The occurrences of `booking`'s repeat that are still ahead of us, the one
+ * passed in included. A one-off booking is a series of exactly itself, so
+ * callers can tell a real repeat by the length.
+ */
+export function futureSeries(bookings: Booking[], booking: Booking, now: number): Booking[] {
+  const key = seriesKey(booking)
+  return bookings
+    .filter((b) => b.endAt > now && seriesKey(b) === key)
+    .sort((a, b) => a.startAt - b.startAt)
+}
+
+/** A repeat collapsed into one entry, so a standing slot reads as one thing. */
+export type BookingSeries = {
+  key: string
+  memberId: string
+  memberName: string
+  /** The soonest occurrence still to come, and the one furthest out. */
+  next: Booking
+  last: Booking
+  /** Every occurrence in the set — one on a booking that doesn't repeat. */
+  ids: string[]
+}
+
+/**
+ * Every booking still ahead of us, grouped into the repeat it belongs to and
+ * ordered by how soon it is. The calendar only draws a week, so this is the
+ * only place the far end of a repeat can be seen — or called off.
+ */
+export function upcomingSeries(bookings: Booking[], now: number): BookingSeries[] {
+  const groups = new Map<string, Booking[]>()
+  for (const b of bookings) {
+    if (b.endAt <= now) continue
+    const key = seriesKey(b)
+    const found = groups.get(key)
+    if (found) found.push(b)
+    else groups.set(key, [b])
+  }
+  return [...groups]
+    .map(([key, list]) => {
+      const sorted = list.sort((a, b) => a.startAt - b.startAt)
+      return {
+        key,
+        memberId: sorted[0].memberId,
+        memberName: sorted[0].memberName,
+        next: sorted[0],
+        last: sorted[sorted.length - 1],
+        ids: sorted.map((b) => b.id),
+      }
+    })
+    .sort((a, b) => a.next.startAt - b.next.startAt)
+}
+
 export function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
   return aStart < bEnd && bStart < aEnd
 }

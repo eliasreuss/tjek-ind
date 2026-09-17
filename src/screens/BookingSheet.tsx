@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Avatar } from '../components/Avatar'
 import { Users } from '../components/Icons'
 import { Sheet } from '../components/Sheet'
 import { useGym } from '../hooks/gymContext'
-import type { CalendarItem } from '../lib/booking'
+import { futureSeries, type CalendarItem } from '../lib/booking'
 import { thud } from '../lib/haptics'
 import { formatClock, formatDayWord, formatRange, MINUTE } from '../lib/time'
 
@@ -54,16 +54,26 @@ function statusFor(item: CalendarItem): { title: string; note: string } {
 }
 
 export function BookingSheet({ item, onClose, onCheckedIn }: Props) {
-  const { members, active, now, start, unbook } = useGym()
-  const [confirming, setConfirming] = useState(false)
+  const { members, active, bookings, now, start, unbook, unbookMany } = useGym()
+  /** Which delete a second tap would go through with — nothing goes on one tap. */
+  const [confirming, setConfirming] = useState<'one' | 'series' | null>(null)
 
   useEffect(() => {
-    setConfirming(false)
+    setConfirming(null)
   }, [item])
 
   const member = item ? (members.find((m) => m.id === item.memberId) ?? null) : null
   const booking = item?.booking ?? null
   const status = item ? statusFor(item) : null
+  // The repeat this booking belongs to, counted from now on: the occurrences
+  // already behind us are history and stay put. A repeat reaches past the week
+  // the calendar draws, so calling off the whole set is the only way to be rid
+  // of the far ones.
+  const series = useMemo(
+    () => (booking ? futureSeries(bookings, booking, now) : []),
+    [bookings, booking, now],
+  )
+  const repeats = series.length > 1
   const canCheckIn =
     !!item &&
     !!member &&
@@ -76,6 +86,13 @@ export function BookingSheet({ item, onClose, onCheckedIn }: Props) {
     if (!booking) return
     thud()
     void unbook(booking.id)
+    onClose()
+  }
+
+  const removeSeries = () => {
+    if (series.length === 0) return
+    thud()
+    void unbookMany(series.map((b) => b.id))
     onClose()
   }
 
@@ -126,9 +143,29 @@ export function BookingSheet({ item, onClose, onCheckedIn }: Props) {
           )}
 
           {booking && booking.endAt > now && (
-            <button className="ghost-btn" onClick={() => (confirming ? remove() : setConfirming(true))}>
-              {confirming ? 'Sikker? Sletter bookingen' : 'Slet booking'}
-            </button>
+            <>
+              <button
+                className="ghost-btn"
+                onClick={() => (confirming === 'one' ? remove() : setConfirming('one'))}
+              >
+                {confirming === 'one'
+                  ? 'Sikker? Sletter bookingen'
+                  : repeats
+                    ? 'Slet kun denne'
+                    : 'Slet booking'}
+              </button>
+
+              {repeats && (
+                <button
+                  className="ghost-btn"
+                  onClick={() => (confirming === 'series' ? removeSeries() : setConfirming('series'))}
+                >
+                  {confirming === 'series'
+                    ? `Sikker? Sletter alle ${series.length}`
+                    : `Slet alle ${series.length} gentagelser`}
+                </button>
+              )}
+            </>
           )}
 
           {!member && <p className="sheet-note">{item.memberName} står ikke længere på holdet.</p>}

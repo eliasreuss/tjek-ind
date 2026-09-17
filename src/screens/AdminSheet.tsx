@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Avatar } from '../components/Avatar'
 import { Plus, Trash } from '../components/Icons'
 import { Sheet } from '../components/Sheet'
 import { ADMIN_PIN } from '../config'
 import { useGym } from '../hooks/gymContext'
+import { upcomingSeries } from '../lib/booking'
+import { formatDayWord, formatRange } from '../lib/time'
 
 type Props = {
   open: boolean
@@ -12,20 +14,25 @@ type Props = {
 }
 
 export function AdminSheet({ open, onClose }: Props) {
-  const { members, active, addMember, removeMember, stopAll, me, setMe } = useGym()
+  const { members, active, bookings, now, addMember, removeMember, unbookMany, stopAll, me, setMe } =
+    useGym()
   const [unlocked, setUnlocked] = useState(false)
   const [pin, setPin] = useState('')
   const [shake, setShake] = useState(false)
   const [name, setName] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [confirmSeries, setConfirmSeries] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) {
       setPin('')
       setName('')
       setConfirmId(null)
+      setConfirmSeries(null)
     }
   }, [open])
+
+  const series = useMemo(() => upcomingSeries(bookings, now), [bookings, now])
 
   const submitPin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,6 +130,61 @@ export function AdminSheet({ open, onClose }: Props) {
               ))}
             </AnimatePresence>
           </ul>
+
+          {/* The calendar only draws a week ahead, so a repeat's later
+              occurrences have no block to tap — this is where they can go. */}
+          <h3 className="admin-heading">Kommende bookinger</h3>
+          {series.length === 0 ? (
+            <p className="sheet-note">Ingen tider er booket.</p>
+          ) : (
+            <ul className="admin-list">
+              <AnimatePresence initial={false}>
+                {series.map((s) => (
+                  <motion.li
+                    key={s.key}
+                    className="admin-row"
+                    layout
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <Avatar name={s.memberName} size={38} />
+                    <span className="admin-name is-stacked">
+                      {s.memberName}
+                      <em className="admin-sub">
+                        {formatDayWord(s.next.startAt, now)} {formatRange(s.next.startAt, s.next.endAt)}
+                        {s.ids.length > 1 &&
+                          ` · ${s.ids.length} gange, til ${formatDayWord(s.last.startAt, now)}`}
+                      </em>
+                    </span>
+                    {confirmSeries === s.key ? (
+                      <span className="confirm">
+                        <button className="confirm-yes" onClick={() => unbookMany(s.ids)}>
+                          Slet
+                        </button>
+                        <button className="confirm-no" onClick={() => setConfirmSeries(null)}>
+                          Fortryd
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        className="icon-btn subtle"
+                        onClick={() => setConfirmSeries(s.key)}
+                        aria-label={
+                          s.ids.length > 1
+                            ? `Slet alle ${s.ids.length} bookinger for ${s.memberName}`
+                            : `Slet booking for ${s.memberName}`
+                        }
+                      >
+                        <Trash size={18} />
+                      </button>
+                    )}
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+            </ul>
+          )}
 
           {active.length > 0 && (
             <button className="ghost-btn" onClick={() => stopAll()}>

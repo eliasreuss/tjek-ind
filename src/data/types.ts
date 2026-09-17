@@ -29,4 +29,9 @@ export type Booking = {
   startAt: number
   endAt: number
   createdAt: number
+  /**
+   * Ties the occurrences of one repeating booking together. Null on a one-off,
+   * and on anything booked before repeats were linked at all.
+   */
+  seriesId: string | null
 }

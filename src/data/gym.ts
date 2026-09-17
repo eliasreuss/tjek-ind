@@ -97,6 +97,7 @@ function toBooking(d: QueryDocumentSnapshot<DocumentData>): Booking {
     startAt: Number(data.startAt ?? 0),
     endAt: Number(data.endAt ?? 0),
     createdAt: Number(data.createdAt ?? 0),
+    seriesId: data.seriesId ? String(data.seriesId) : null,
   }
 }
 
@@ -122,8 +123,8 @@ export function watchBookingsSince(
 
 /**
  * A single booking, or — with `repeat` set — the same slot laid down again on
- * a schedule. Every occurrence is its own independent document; there is no
- * series to speak of, so deleting one never touches the others.
+ * a schedule. Every occurrence is still its own document, but a repeat's
+ * occurrences share a `seriesId` so they can be called off in one go.
  */
 export async function addBooking(
   member: Member,
@@ -134,6 +135,7 @@ export async function addBooking(
   if (endAt <= startAt) return
   const occurrences = repeat ? repeatDates(startAt, endAt, repeat) : [{ startAt, endAt }]
   const createdAt = Date.now()
+  const seriesId = repeat ? doc(bookings).id : null
   const batch = writeBatch(db)
   for (const o of occurrences) {
     batch.set(doc(bookings), {
@@ -142,6 +144,7 @@ export async function addBooking(
       startAt: o.startAt,
       endAt: o.endAt,
       createdAt,
+      seriesId,
     })
   }
   await batch.commit()
@@ -149,6 +152,19 @@ export async function addBooking(
 
 export async function removeBooking(id: string) {
   await deleteDoc(doc(bookings, id))
+}
+
+/**
+ * Drops a whole set of bookings at once — the occurrences of a repeat, which
+ * reach further ahead than the calendar draws and so can't all be tapped.
+ */
+export async function removeBookings(ids: string[]) {
+  if (ids.length === 0) return
+  for (let i = 0; i < ids.length; i += 400) {
+    const batch = writeBatch(db)
+    ids.slice(i, i + 400).forEach((id) => batch.delete(doc(bookings, id)))
+    await batch.commit()
+  }
 }
 
 /** Keeps the calendar free of times claimed by someone who is no longer on the roster. */

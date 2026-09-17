@@ -62,7 +62,7 @@ Tre collections:
 | --- | --- |
 | `members` | `name`, `createdAt`, `weeklyGoal` — dokument-ID er et slug af navnet, så den samme person aldrig kan oprettes to gange |
 | `sessions` | `memberId`, `memberName`, `startAt`, `endAt`, `active`, `guests` |
-| `bookings` | `memberId`, `memberName`, `startAt`, `endAt`, `createdAt` |
+| `bookings` | `memberId`, `memberName`, `startAt`, `endAt`, `createdAt`, `seriesId` |
 
 `bookings` og `sessions` holdes bevidst adskilt: en booking er en hensigt, en session er en
 indtjekning. Kalenderen parrer dem — en booking, der har en session i samme tidsrum for samme

@@ -1185,6 +1185,30 @@
   font-weight: 600;
 }
 
+/* A booking row carries its time under the name, so it stacks. */
+.admin-name.is-stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.admin-sub {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.admin-heading {
+  margin-top: 24px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .live-dot {
   width: 8px;
   height: 8px;
