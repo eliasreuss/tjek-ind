@@ -186,7 +186,8 @@
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
+  /* Days never come to rest half-shown: the grid always settles on a day. */
+  scroll-snap-type: x mandatory;
   /* A day snaps flush with the hour column, not underneath it. */
   scroll-padding-left: var(--cal-gutter);
   border: 1px solid var(--line);
@@ -248,6 +249,8 @@
   max-width: 220px;
   border-left: 1px solid var(--line);
   scroll-snap-align: start;
+  /* One day per swipe, however hard it's flung — no skipping past a day. */
+  scroll-snap-stop: always;
 }
 
 .cal-col-head {

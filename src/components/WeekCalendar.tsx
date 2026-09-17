@@ -38,6 +38,16 @@ const HOLD_SLOP = 10
 const DEFAULT_LENGTH = 60 * MINUTE
 const STEP_MS = BOOKING_STEP * MINUTE
 
+/**
+ * How long the grid takes to slide one day across. In the same breath as the
+ * rest of the app's motion — long enough to follow, short enough not to wait.
+ */
+const DAY_SLIDE_MS = 180
+/** Sideways travel that counts as a deliberate swipe rather than a wobble. */
+const SWIPE_SLOP = 24
+/** Quiet time that ends a swipe, so one flick of the trackpad is one day. */
+const SWIPE_END_MS = 140
+
 type Props = {
   bookings: Booking[]
   sessions: Session[]
@@ -393,6 +403,79 @@ export function WeekCalendar({ bookings, sessions, now, onCreateRange, onPickIte
     if (!el) return
     const target = offsetOf(startOfDay(Date.now()), Date.now()) - ROW_H
     el.scrollTop = Math.max(0, Math.min(target, ROWS * ROW_H - el.clientHeight + HEAD_H))
+  }, [])
+
+  /**
+   * Sideways, the grid is a carousel: one swipe moves one day, and it gets
+   * there on our own clock rather than coasting to a stop. The hours below are
+   * left to scroll natively — only sideways intent is taken over.
+   */
+  useEffect(() => {
+    const el = scroller.current
+    if (!el) return
+    let frame = 0
+    let sliding = false
+    let travel = 0
+    let settle = 0
+    // A swipe holds the wheel until the fingers lift, so a long flick can't
+    // run through half the week.
+    let held = false
+
+    const slideTo = (left: number) => {
+      const from = el.scrollLeft
+      const dist = left - from
+      if (Math.abs(dist) < 1) return
+      // Native snapping would fight a scroll it didn't start.
+      el.style.scrollSnapType = 'none'
+      sliding = true
+      const startedAt = performance.now()
+      const step = (t: number) => {
+        const p = Math.min(1, (t - startedAt) / DAY_SLIDE_MS)
+        el.scrollLeft = from + dist * (1 - (1 - p) ** 3)
+        if (p < 1) {
+          frame = requestAnimationFrame(step)
+          return
+        }
+        el.style.scrollSnapType = ''
+        sliding = false
+      }
+      frame = requestAnimationFrame(step)
+    }
+
+    const onWheel = (e: WheelEvent) => {
+      // A mouse wheel has no sideways axis, so shift stands in for one.
+      const sideways = e.shiftKey ? e.deltaY : e.deltaX
+      const downwards = e.shiftKey ? 0 : e.deltaY
+      if (Math.abs(sideways) <= Math.abs(downwards)) return
+      e.preventDefault()
+
+      window.clearTimeout(settle)
+      settle = window.setTimeout(() => {
+        held = false
+        travel = 0
+      }, SWIPE_END_MS)
+
+      if (held || sliding) return
+      travel += sideways
+      if (Math.abs(travel) < SWIPE_SLOP) return
+
+      const col = el.querySelector('.cal-col')
+      const width = col ? col.getBoundingClientRect().width : 0
+      if (!width) return
+
+      const day = Math.round(el.scrollLeft / width) + Math.sign(travel)
+      held = true
+      travel = 0
+      slideTo(Math.max(0, Math.min(el.scrollWidth - el.clientWidth, day * width)))
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      window.clearTimeout(settle)
+      cancelAnimationFrame(frame)
+      el.style.scrollSnapType = ''
+    }
   }, [])
 
   const nowOffset = offsetOf(today, now)
